@@ -23,7 +23,7 @@ interface HttpRequest {
 
 /** Very simple wrapper to {@link http} library for ease of use */
 class HttpClient {
-  content = '';
+  private content = '';
 
   request(request: HttpRequest): void {
     const { method, url, body, headers, params, callback } = request;
@@ -36,9 +36,7 @@ class HttpClient {
       : url;
 
     // add headers
-    const _options: https.RequestOptions = headers
-      ? { method, headers }
-      : { method };
+    const _options: http.RequestOptions = { method, headers };
 
     let _clientRequest: http.ClientRequest;
     // add response callback
@@ -59,9 +57,7 @@ class HttpClient {
     _clientRequest.end();
   }
 
-  get(request: HttpRequest): void {
-    return this.request({ ...request, method: 'GET' });
-  }
+  get = (request: HttpRequest) => this.request({ ...request, method: 'GET' });
 }
 
 export { HttpClient };

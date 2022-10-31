@@ -21,3 +21,16 @@ services:
     ports:
       - '6379:6379'
     entrypoint: redis-cli
+  mongo:
+    image: mongo:4.4
+    restart: always
+    command: [ "--replSet", "rs0", "--bind_ip_all", "--port", "27018" ]
+    ports:
+      - '27018:27018'
+    healthcheck:
+      test: test $$(echo "rs.initiate({_id:'rs0',members:[{_id:0,host:\"localhost:27018\"}]}).ok || rs.status().ok" | mongo --port 27018 --quiet) -eq 1
+      interval: 10s
+  ad:
+    image: ad
+    ports:
+      - '10389:10389'

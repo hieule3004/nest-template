@@ -15,6 +15,7 @@ const rfc: { [docId: number]: Heket.Parser } = {};
 {
   registerValidator(3966, 'telephone-subscriber');
   registerValidator(5322, 'addr-spec');
+  registerValidator(3339, 'date-time');
 }
 
 //---- Validator ----//
@@ -24,6 +25,9 @@ export const emailValidator = (raw: string): boolean =>
 
 export const phoneValidator = (raw: string): boolean =>
   !!rfc[3966].parseSafe(raw);
+
+export const iso8601DateValidator = (raw: string): boolean =>
+  !!rfc[3339].parseSafe(raw);
 
 //---- Helper function ----//
 
@@ -50,10 +54,16 @@ function _addParser(id: number, ruleName: string, abnf: string): void {
   // fix spacing of extracted document to follow ABNF format
   abnf = abnf
     .trim()
+    // remove note
+    .replace(/NOTE:([^=]+)(?=\n\s*[a-z][^=]+=)/g, '')
+    // fix inconsistent CR
     .replace(/\n+/g, '\n\n')
+    // fix inconsistent spacing rule - comment
     .replace(/\n\n(\s+;)/g, '\n$1')
+    // fix inconsistent spacing multiple comments
     .replace(/(;[^\n]+)\n\n(\s+)/g, '$1\n$2')
-    .replace(/\n\n\s+/g, ' ');
+    // fix inconsistent spacing multiline comment
+    .replace(/\n\n[ \t]+/g, ' ');
 
   // parse RFC, remove lines until parsable
   let rules: any;

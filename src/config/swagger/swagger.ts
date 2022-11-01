@@ -1,8 +1,9 @@
+import * as fs from 'fs';
 import { INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { patchNestJsSwagger } from 'nestjs-zod';
 import { SwaggerExplorer } from '@nestjs/swagger/dist/swagger-explorer';
 import { DECORATORS } from '@nestjs/swagger/dist/constants';
-import { patchNestJsSwagger } from 'nestjs-zod';
 
 function setupSwagger(app: INestApplication) {
   const path = process.env.API_PREFIX || '/api';
@@ -25,10 +26,18 @@ function setupSwagger(app: INestApplication) {
     operationIdFactory: (_controllerKey, methodKey) => methodKey,
   });
 
+  fs.writeFile(
+    'swagger.json',
+    JSON.stringify(document, null, 2),
+    () => undefined,
+  );
+
   SwaggerModule.setup(path, app, document);
 }
 
-const validateDto = patchNestJsSwagger;
+const validateDto = () => {
+  patchNestJsSwagger();
+};
 
 const groupControllersByPath = () => {
   const instance = SwaggerExplorer as any;

@@ -68,7 +68,7 @@ function _addParser(id: number, ruleName: string, abnf: string): void {
 
   // parse RFC, remove lines until parsable
   let rules: any;
-  while (abnf) {
+  while (!rules) {
     try {
       rules = Heket.createRuleList(abnf);
       break;

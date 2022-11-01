@@ -79,7 +79,12 @@ function _addParser(id: number, ruleName: string, abnf: string): void {
       // default throw
       if (!match) throw e;
       // remove uncompilable rule
-      abnf = abnf.replace(new RegExp(`([^\n]*${match[1]})`, 'g'), ';$1');
+      const newAbnf = abnf.replace(
+        new RegExp(`([^\n]*${match[1]})`, 'g'),
+        ';$1',
+      );
+      if (abnf === newAbnf) throw e;
+      abnf = newAbnf;
     }
   }
 

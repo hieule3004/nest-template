@@ -4,6 +4,8 @@ import * as Heket from 'heket';
 
 //---- Struct ----//
 
+const { RuleNotFoundError } = Heket as any;
+
 const ABNF_URL = 'https://author-tools.ietf.org/api/abnf/extract';
 const RESOURCE_DIR = 'dist/resources';
 
@@ -52,37 +54,29 @@ function registerValidator(id: number, ruleName: string): void {
 /** Add parser to {@link rfc} map */
 function _addParser(id: number, ruleName: string, abnf: string): void {
   // fix spacing of extracted document to follow ABNF format
-  abnf = abnf
-    .trim()
-    // remove note
-    .replace(/NOTE:([^=]+)(?=\n\s*[a-z][^=]+=)/g, '')
-    // fix inconsistent CR
-    .replace(/\n+/g, '\n\n')
-    // fix inconsistent spacing rule - comment
-    .replace(/\n\n(\s+;)/g, '\n$1')
-    // fix inconsistent spacing multiple comments
-    .replace(/(;[^\n]+)\n\n(\s+)/g, '$1\n$2')
-    // fix inconsistent spacing multiline comment
-    .replace(/\n\n[ \t]+/g, ' ');
+  abnf = abnf.split('\n').reduce((a, s) => {
+    // remove comments
+    const commentTokenIdx = s.indexOf(' ;');
+    if (commentTokenIdx > 0) s = s.substring(0, commentTokenIdx);
+    s = s.trim();
+    // add new rule
+    if (s.match(/^[A-Za-z0-9-\s]+=[/\s]+/)) a += '\n\n' + s;
+    // join multiline rule
+    else if (a[a.length - 1].match(/[=/]/)) a += s;
+    return a;
+  }, '');
 
   // parse RFC, remove lines until parsable
   let rules: any;
-  while (!rules) {
+  while (abnf) {
     try {
       rules = Heket.createRuleList(abnf);
+      break;
     } catch (e: any) {
-      let match: RegExpMatchArray | undefined;
-      // rule with unknown value
-      if (!match) match = e.message.match(/Invalid rule name: (.+)/);
-      // rule alt without base
-      if (!match) match = e.message.match(/Rule not found: <(.+)>/);
-      // default throw
-      if (!match) throw e;
-      // remove uncompilable rule
-      const newAbnf = abnf.replace(
-        new RegExp(`([^\n]*${match[1]})`, 'g'),
-        ';$1',
-      );
+      if (!(e instanceof RuleNotFoundError)) throw e;
+      // remove uncompilable rule, detect loop
+      const re = new RegExp(`([^\n]*${e.rule_name})`, 'g');
+      const newAbnf = abnf.replace(re, ';$1');
       if (abnf === newAbnf) throw e;
       abnf = newAbnf;
     }

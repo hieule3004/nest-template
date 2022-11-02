@@ -36,10 +36,11 @@ export const iso8601DateValidator = (raw: string): boolean =>
 /** Helper function to create parser */
 function registerValidator(id: number, ruleName: string): void {
   try {
-    let abnf = '';
-    const clientRequest = https.get(`${ABNF_URL}?doc=${id}`);
-    clientRequest.on('data', (chunk) => (abnf += chunk.toString()));
-    clientRequest.on('end', () => _addParser(id, ruleName, abnf));
+    const clientRequest = https.get(`${ABNF_URL}?doc=${id}`, (res) => {
+      let abnf = '';
+      res.on('data', (chunk) => (abnf += chunk.toString()));
+      res.on('end', () => _addParser(id, ruleName, abnf));
+    });
     clientRequest.end();
   } catch (e) {
     // use offline version in case of connection issue

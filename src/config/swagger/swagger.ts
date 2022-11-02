@@ -1,15 +1,20 @@
 import * as fs from 'fs';
 import { INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { patchNestJsSwagger } from 'nestjs-zod';
+import { patchNestJsSwagger, zodToOpenAPI } from 'nestjs-zod';
 import { SwaggerExplorer } from '@nestjs/swagger/dist/swagger-explorer';
 import { DECORATORS } from '@nestjs/swagger/dist/constants';
+import * as ApiParametersExplorer from '@nestjs/swagger/dist/explorers/api-parameters.explorer';
+import { ParameterMetadataAccessor } from '@nestjs/swagger/dist/services/parameter-metadata-accessor';
+import { isZodDto, ZodDto } from 'nestjs-zod/dto';
+import { SchemaObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
 
 function setupSwagger(app: INestApplication) {
   const path = process.env.API_PREFIX || '/api';
 
   // processor decorate
   groupControllersByPath();
+  validateQueryAndParam();
   validateDto();
 
   const config = new DocumentBuilder()
@@ -53,6 +58,39 @@ const groupControllersByPath = () => {
       Reflect.defineMetadata(DECORATORS.API_TAGS, [metadata], metatype);
     }
     return instance[method](metatype);
+  };
+};
+
+const validateQueryAndParam = () => {
+  const _instance = ApiParametersExplorer as any;
+  const _method = 'exploreApiParametersMetadata';
+
+  const _accessor = new ParameterMetadataAccessor();
+  const t = _instance[_method];
+  _instance[_method] = (
+    schemas: any,
+    instance: any,
+    prototype: any,
+    method: any,
+  ) => {
+    Object.values(_accessor.explore(instance, prototype, method) || {})
+      .filter((obj) => obj.in !== 'body' && isZodDto(obj.type))
+      .map((obj) => {
+        const sObj = zodToOpenAPI((obj.type as ZodDto).schema);
+        const properties = sObj.properties as { [_: string]: SchemaObject };
+        const required = new Set(sObj.required);
+
+        return Object.entries(properties).map(([name, { type }]) => ({
+          name,
+          type,
+          in: obj.in,
+          required: required.has(name),
+        }));
+      })
+      .forEach((params) => {
+        Reflect.defineMetadata(DECORATORS.API_PARAMETERS, params, method);
+      });
+    return t(schemas, instance, prototype, method);
   };
 };
 

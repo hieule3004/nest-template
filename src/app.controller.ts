@@ -1,6 +1,8 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Param, Req } from '@nestjs/common';
 import { AppService } from './app.service';
 import { RuntimeException } from '@nestjs/core/errors/exceptions/runtime.exception';
+import { RfcParam } from './rfc.dto';
+import { phoneValidator } from './common/validator';
 
 @Controller()
 export class AppController {
@@ -19,5 +21,10 @@ export class AppController {
   @Get('/array')
   getArray() {
     return [{ a: 1 }, { b: 2 }, { c: 3 }];
+  }
+
+  @Get('rfc/:value')
+  getRfc(@Req() req: any, @Param() { value }: RfcParam) {
+    return phoneValidator(String(value));
   }
 }

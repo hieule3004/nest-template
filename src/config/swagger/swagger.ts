@@ -13,7 +13,8 @@ import {
   ParameterObject,
   SchemaObject,
 } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
-import { patchNestJsSwagger, ZodDto, zodToOpenAPI } from 'nestjs-zod';
+import { patchNestJsSwagger, zodToOpenAPI } from 'nestjs-zod';
+import { isZodDto } from 'nestjs-zod/dto';
 
 function setupSwagger(app: INestApplication) {
   const path = process.env.API_PREFIX || '/api';
@@ -78,6 +79,7 @@ const validateQueryAndParam = () => {
     Object.values(_accessor.explore(instance, prototype, method) || {})
       .filter((obj) => obj.in !== 'body')
       .map(transformMetadataToParams)
+      .filter((params) => params)
       .forEach((params) => {
         Reflect.defineMetadata(DECORATORS.API_PARAMETERS, params, method);
       });
@@ -90,8 +92,9 @@ const validateQueryAndParam = () => {
 function transformMetadataToParams(
   metadata: ParamWithTypeMetadata,
 ): ParameterObject[] {
+  if (!isZodDto(metadata.type)) return [];
   const inType = metadata.in as ParameterLocation;
-  const sObj = zodToOpenAPI((metadata.type as ZodDto).schema);
+  const sObj = zodToOpenAPI(metadata.type.schema);
   const properties = sObj.properties as { [_: string]: SchemaObject };
   const required = new Set(sObj.required);
 

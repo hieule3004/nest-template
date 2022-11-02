@@ -97,6 +97,7 @@ function transformMetadataToParams(
 ): ParameterObject[] {
   const sObj = getSchemaObject(metadata, method);
   if (!sObj) return [];
+
   const inType = metadata.in as ParameterLocation;
   const properties = sObj.properties as { [_: string]: SchemaObject };
   const required = new Set(sObj.required);
@@ -111,13 +112,16 @@ function transformMetadataToParams(
 
 //-- Validator-specific --//
 
-function getSchemaObject(metadata: any, method: any): SchemaObject | undefined {
-  if (isZodDto(metadata.type)) return zodToOpenAPI(metadata.type.schema);
+function getSchemaObject(
+  { type, in: _in }: any,
+  method: any,
+): SchemaObject | undefined {
+  if (isZodDto(type)) return zodToOpenAPI(type.schema);
 
   const pipe = Reflect.getMetadata(PIPES_METADATA, method)?.find(
     (p: PipeTransform) => p instanceof JoiValidationPipe,
   );
-  if (pipe) return joiToSwagger(pipe[0]['paramSchema'] as ObjectSchema).swagger;
+  if (pipe) return joiToSwagger(pipe[`${_in}Schema`] as ObjectSchema).swagger;
 
   return undefined;
 }

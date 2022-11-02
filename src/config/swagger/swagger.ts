@@ -1,13 +1,19 @@
 import * as fs from 'fs';
 import { INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { patchNestJsSwagger, zodToOpenAPI } from 'nestjs-zod';
 import { SwaggerExplorer } from '@nestjs/swagger/dist/swagger-explorer';
 import { DECORATORS } from '@nestjs/swagger/dist/constants';
 import * as ApiParametersExplorer from '@nestjs/swagger/dist/explorers/api-parameters.explorer';
-import { ParameterMetadataAccessor } from '@nestjs/swagger/dist/services/parameter-metadata-accessor';
-import { isZodDto, ZodDto } from 'nestjs-zod/dto';
-import { SchemaObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
+import {
+  ParameterMetadataAccessor,
+  ParamWithTypeMetadata,
+} from '@nestjs/swagger/dist/services/parameter-metadata-accessor';
+import {
+  ParameterLocation,
+  ParameterObject,
+  SchemaObject,
+} from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
+import { patchNestJsSwagger, ZodDto, zodToOpenAPI } from 'nestjs-zod';
 
 function setupSwagger(app: INestApplication) {
   const path = process.env.API_PREFIX || '/api';
@@ -15,7 +21,7 @@ function setupSwagger(app: INestApplication) {
   // processor decorate
   groupControllersByPath();
   validateQueryAndParam();
-  validateDto();
+  validateBodyAndResponse();
 
   const config = new DocumentBuilder()
     .addServer(path)
@@ -39,10 +45,6 @@ function setupSwagger(app: INestApplication) {
 
   SwaggerModule.setup(path, app, document);
 }
-
-const validateDto = () => {
-  patchNestJsSwagger();
-};
 
 const groupControllersByPath = () => {
   const instance = SwaggerExplorer as any;
@@ -74,24 +76,35 @@ const validateQueryAndParam = () => {
     method: any,
   ) => {
     Object.values(_accessor.explore(instance, prototype, method) || {})
-      .filter((obj) => obj.in !== 'body' && isZodDto(obj.type))
-      .map((obj) => {
-        const sObj = zodToOpenAPI((obj.type as ZodDto).schema);
-        const properties = sObj.properties as { [_: string]: SchemaObject };
-        const required = new Set(sObj.required);
-
-        return Object.entries(properties).map(([name, { type }]) => ({
-          name,
-          type,
-          in: obj.in,
-          required: required.has(name),
-        }));
-      })
+      .filter((obj) => obj.in !== 'body')
+      .map(transformMetadataToParams)
       .forEach((params) => {
         Reflect.defineMetadata(DECORATORS.API_PARAMETERS, params, method);
       });
     return t(schemas, instance, prototype, method);
   };
+};
+
+//-- Zod-specific --//
+
+function transformMetadataToParams(
+  metadata: ParamWithTypeMetadata,
+): ParameterObject[] {
+  const inType = metadata.in as ParameterLocation;
+  const sObj = zodToOpenAPI((metadata.type as ZodDto).schema);
+  const properties = sObj.properties as { [_: string]: SchemaObject };
+  const required = new Set(sObj.required);
+
+  return Object.entries(properties).map(([name, { type }]) => ({
+    name,
+    type,
+    in: inType,
+    required: required.has(name),
+  }));
+}
+
+const validateBodyAndResponse = () => {
+  patchNestJsSwagger();
 };
 
 export { setupSwagger };

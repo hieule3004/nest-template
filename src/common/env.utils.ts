@@ -4,4 +4,4 @@ export const port = () => process.env.PORT ?? 3000;
 
 export const apiPrefix = () => process.env.API_PREFIX ?? '/api';
 
-export { loglevel } from '../logging/logging.utils';
+export { loglevel } from '../config/logging/logging.utils';

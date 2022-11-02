@@ -1,11 +1,11 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { LoggingService } from './logging/logging.service';
+import { LoggingService } from './config/logging/logging.service';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { apiPrefix, env, loglevel, port } from './common/env.utils';
-import { RequestInterceptor } from './http/request.interceptor';
-import { HttpExceptionFilter } from './http/exception.filter';
-import { Swagger } from './swagger/swagger';
+import { RequestInterceptor } from './config/http/request.interceptor';
+import { HttpExceptionFilter } from './config/http/exception.filter';
+import { setupSwagger } from './config/swagger/swagger';
 
 (async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -19,7 +19,7 @@ import { Swagger } from './swagger/swagger';
   app.useGlobalFilters(new HttpExceptionFilter());
   app.useGlobalInterceptors(new RequestInterceptor(logger));
 
-  Swagger(app);
+  setupSwagger(app);
 
   // resolve to IPv4
   await app.listen(port(), '0.0.0.0');

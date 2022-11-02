@@ -5,13 +5,15 @@ import { PATH_METADATA, PIPES_METADATA } from '@nestjs/common/constants';
 import { DECORATORS } from '@nestjs/swagger/dist/constants';
 import * as ApiParametersExplorer from '@nestjs/swagger/dist/explorers/api-parameters.explorer';
 import * as ApiUseTagsExplorer from '@nestjs/swagger/dist/explorers/api-use-tags.explorer';
+import * as ApiResponseExplorer from '@nestjs/swagger/dist/explorers/api-response.explorer';
+import { SchemaObjectFactory } from '@nestjs/swagger/dist/services/schema-object-factory';
 import { ParameterMetadataAccessor } from '@nestjs/swagger/dist/services/parameter-metadata-accessor';
 import {
   ParameterLocation,
   ParameterObject,
   SchemaObject,
 } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
-import { patchNestJsSwagger, zodToOpenAPI } from 'nestjs-zod';
+import { zodToOpenAPI } from 'nestjs-zod';
 import { isZodDto } from 'nestjs-zod/dto';
 import { ObjectSchema } from 'joi';
 import joiToSwagger from 'joi-to-swagger';
@@ -22,8 +24,7 @@ function setupSwagger(app: INestApplication) {
 
   // processor decorate
   groupControllersByPath();
-  validateQueryAndParam();
-  validateBodyAndResponse();
+  validateEndpoint();
 
   const config = new DocumentBuilder()
     .addServer(path)
@@ -90,7 +91,7 @@ const groupControllersByPath = () => {
   };
 };
 
-const validateQueryAndParam = () => {
+const validateRequest = () => {
   const _instance = ApiParametersExplorer as any;
 
   const _prop = 'exploreApiParametersMetadata';
@@ -102,30 +103,66 @@ const validateQueryAndParam = () => {
     prototype: any,
     method: any,
   ) => {
-    // add param and query validation to swagger
-    Object.values(_accessor.explore(instance, prototype, method) || {})
-      .filter((obj) => obj.in !== 'body')
-      .map((metadata): ParameterObject[] => {
+    Object.values(_accessor.explore(instance, prototype, method) || {}).forEach(
+      (metadata) => {
         const schemaObject = getSchemaObject(metadata, method);
-        if (!schemaObject) return [];
-
-        const required = new Set(schemaObject.required);
-        return Object.entries(
-          schemaObject.properties as { [_: string]: SchemaObject },
-        ).map(([name, { type }]) => ({
-          name,
-          type,
-          in: metadata.in as ParameterLocation,
-          required: required.has(name),
-        }));
-      })
-      .filter((params) => params)
-      .forEach((params) => {
-        Reflect.defineMetadata(DECORATORS.API_PARAMETERS, params, method);
-      });
+        if (!schemaObject) return;
+        if (metadata.in === 'body') {
+          // add body schema to swagger
+          schemas[metadata.type?.name as string] = schemaObject;
+        } else {
+          // add param and query validation to swagger
+          const required = new Set(schemaObject.required);
+          const params: ParameterObject[] = Object.entries(
+            schemaObject.properties as { [_: string]: SchemaObject },
+          ).map(([name, { type }]) => ({
+            name,
+            type,
+            in: metadata.in as ParameterLocation,
+            required: required.has(name),
+          }));
+          Reflect.defineMetadata(DECORATORS.API_PARAMETERS, params, method);
+        }
+      },
+    );
     return _super(schemas, instance, prototype, method);
   };
 };
+
+const validateResponse = () => {
+  const _instance = ApiResponseExplorer as any;
+  const _prop = 'exploreApiResponseMetadata';
+
+  const _method = _instance[_prop];
+  _instance[_prop] = function (
+    schemas: any,
+    instance: any,
+    prototype: any,
+    method: any,
+  ) {
+    Object.values(
+      Reflect.getMetadata(DECORATORS.API_RESPONSE, method) || {},
+    ).forEach((metadata: any) => {
+      const schemaObject = getSchemaObject(metadata, method);
+      if (schemaObject) schemas[metadata.type?.name as string] = schemaObject;
+    });
+    return _method(schemas, instance, prototype, method);
+  };
+};
+
+const validateEndpoint = () => {
+  validateRequest();
+  validateResponse();
+  // bypassSchemaMapper
+  const _instance = SchemaObjectFactory as any;
+  const _prop = 'exploreModelSchema';
+
+  _instance.prototype[_prop] = function (type: any) {
+    if (this.isLazyTypeFunc(type)) type = type();
+    return type.name;
+  };
+};
+
 //-- Validator-specific --//
 
 function getSchemaObject(metadata: any, method: any): SchemaObject | undefined {
@@ -138,9 +175,5 @@ function getSchemaObject(metadata: any, method: any): SchemaObject | undefined {
 
   return undefined;
 }
-
-const validateBodyAndResponse = () => {
-  patchNestJsSwagger();
-};
 
 export { setupSwagger };

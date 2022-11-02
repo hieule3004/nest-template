@@ -26,7 +26,7 @@ export class AppController {
 
   @Get('rfc/:value')
   @UsePipes(new JoiValidationPipe(undefined, RfcParamJoiSchema, undefined))
-  getRfc(@Req() req: any, @Param() { value }: any): RfcResponse {
+  getRfc(@Req() req: any, @Param() { value }: RfcParam): RfcResponse {
     return { result: phoneValidator(String(value)) };
   }
 }

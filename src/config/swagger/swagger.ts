@@ -1,7 +1,7 @@
 import * as fs from 'fs';
-import { INestApplication, PipeTransform } from '@nestjs/common';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { INestApplication } from '@nestjs/common';
 import { PATH_METADATA, PIPES_METADATA } from '@nestjs/common/constants';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { DECORATORS } from '@nestjs/swagger/dist/constants';
 import * as ApiParametersExplorer from '@nestjs/swagger/dist/explorers/api-parameters.explorer';
 import * as ApiUseTagsExplorer from '@nestjs/swagger/dist/explorers/api-use-tags.explorer';
@@ -14,7 +14,6 @@ import {
   SchemaObject,
 } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
 import { zodToOpenAPI } from 'nestjs-zod';
-import { isZodDto } from 'nestjs-zod/dto';
 import { ObjectSchema } from 'joi';
 import joiToSwagger from 'joi-to-swagger';
 import { JoiValidationPipe } from '../../common/joi-pipe';
@@ -23,7 +22,7 @@ function setupSwagger(app: INestApplication) {
   const path = process.env.API_PREFIX || '/api';
 
   // processor decorate
-  groupControllersByPath();
+  groupController();
   validateEndpoint();
 
   const config = new DocumentBuilder()
@@ -56,7 +55,7 @@ function setupSwagger(app: INestApplication) {
  * Alternative: SwaggerExplorer.exploreGlobalMetadata; less code but more hacky
  * instance[prop] = prototype[prop]; prototype[prop] = () => instance[prop]
  * */
-const groupControllersByPath = () => {
+const groupController = () => {
   const _instance = ApiUseTagsExplorer as any;
   const KEY = '__group_path_swagger__';
 
@@ -91,10 +90,13 @@ const groupControllersByPath = () => {
   };
 };
 
+/**
+ * Add request param, query object and body schema
+ * */
 const validateRequest = () => {
   const _instance = ApiParametersExplorer as any;
-
   const _prop = 'exploreApiParametersMetadata';
+
   const _super = _instance[_prop];
   const _accessor = new ParameterMetadataAccessor();
   _instance[_prop] = (
@@ -129,11 +131,14 @@ const validateRequest = () => {
   };
 };
 
+/**
+ * Add response schema
+ * */
 const validateResponse = () => {
   const _instance = ApiResponseExplorer as any;
   const _prop = 'exploreApiResponseMetadata';
 
-  const _method = _instance[_prop];
+  const _super = _instance[_prop];
   _instance[_prop] = function (
     schemas: any,
     instance: any,
@@ -146,14 +151,14 @@ const validateResponse = () => {
       const schemaObject = getSchemaObject(metadata, method);
       if (schemaObject) schemas[metadata.type?.name as string] = schemaObject;
     });
-    return _method(schemas, instance, prototype, method);
+    return _super(schemas, instance, prototype, method);
   };
 };
 
 const validateEndpoint = () => {
   validateRequest();
   validateResponse();
-  // bypassSchemaMapper
+  // remove default schema creation, as handled manually
   const _instance = SchemaObjectFactory as any;
   const _prop = 'exploreModelSchema';
 
@@ -166,12 +171,12 @@ const validateEndpoint = () => {
 //-- Validator-specific --//
 
 function getSchemaObject(metadata: any, method: any): SchemaObject | undefined {
-  if (isZodDto(metadata.type)) return zodToOpenAPI(metadata.type.schema);
+  if (metadata.type?.isZodDto) return zodToOpenAPI(metadata.type.schema);
 
   const schema = Reflect.getMetadata(PIPES_METADATA, method)?.find(
-    (p: PipeTransform) => p instanceof JoiValidationPipe,
-  )[`${metadata.in}Schema`];
-  if (schema) return joiToSwagger(schema as ObjectSchema).swagger;
+    (p: any) => p instanceof JoiValidationPipe,
+  )[`${metadata.in ?? 'response'}Schema`] as ObjectSchema;
+  if (schema) return joiToSwagger(schema).swagger;
 
   return undefined;
 }

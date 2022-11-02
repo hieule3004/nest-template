@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, PipeTransform } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { SwaggerExplorer } from '@nestjs/swagger/dist/swagger-explorer';
 import { DECORATORS } from '@nestjs/swagger/dist/constants';
@@ -15,6 +15,10 @@ import {
 } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
 import { patchNestJsSwagger, zodToOpenAPI } from 'nestjs-zod';
 import { isZodDto } from 'nestjs-zod/dto';
+import { JoiValidationPipe } from '../../common/joi-pipe';
+import joiToSwagger from 'joi-to-swagger';
+import { ObjectSchema } from 'joi';
+import { PIPES_METADATA } from '@nestjs/common/constants';
 
 function setupSwagger(app: INestApplication) {
   const path = process.env.API_PREFIX || '/api';
@@ -78,7 +82,7 @@ const validateQueryAndParam = () => {
   ) => {
     Object.values(_accessor.explore(instance, prototype, method) || {})
       .filter((obj) => obj.in !== 'body')
-      .map(transformMetadataToParams)
+      .map((metadata) => transformMetadataToParams(metadata, method))
       .filter((params) => params)
       .forEach((params) => {
         Reflect.defineMetadata(DECORATORS.API_PARAMETERS, params, method);
@@ -87,14 +91,13 @@ const validateQueryAndParam = () => {
   };
 };
 
-//-- Zod-specific --//
-
 function transformMetadataToParams(
   metadata: ParamWithTypeMetadata,
+  method: any,
 ): ParameterObject[] {
-  if (!isZodDto(metadata.type)) return [];
+  const sObj = getSchemaObject(metadata, method);
+  if (!sObj) return [];
   const inType = metadata.in as ParameterLocation;
-  const sObj = zodToOpenAPI(metadata.type.schema);
   const properties = sObj.properties as { [_: string]: SchemaObject };
   const required = new Set(sObj.required);
 
@@ -104,6 +107,19 @@ function transformMetadataToParams(
     in: inType,
     required: required.has(name),
   }));
+}
+
+//-- Validator-specific --//
+
+function getSchemaObject(metadata: any, method: any): SchemaObject | undefined {
+  if (isZodDto(metadata.type)) return zodToOpenAPI(metadata.type.schema);
+
+  const pipe = Reflect.getMetadata(PIPES_METADATA, method)?.find(
+    (p: PipeTransform) => p instanceof JoiValidationPipe,
+  );
+  if (pipe) return joiToSwagger(pipe[0]['paramSchema'] as ObjectSchema).swagger;
+
+  return undefined;
 }
 
 const validateBodyAndResponse = () => {

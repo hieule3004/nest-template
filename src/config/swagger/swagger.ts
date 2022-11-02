@@ -112,16 +112,13 @@ function transformMetadataToParams(
 
 //-- Validator-specific --//
 
-function getSchemaObject(
-  { type, in: _in }: any,
-  method: any,
-): SchemaObject | undefined {
-  if (isZodDto(type)) return zodToOpenAPI(type.schema);
+function getSchemaObject(metadata: any, method: any): SchemaObject | undefined {
+  if (isZodDto(metadata.type)) return zodToOpenAPI(metadata.type.schema);
 
-  const pipe = Reflect.getMetadata(PIPES_METADATA, method)?.find(
+  const schema = Reflect.getMetadata(PIPES_METADATA, method)?.find(
     (p: PipeTransform) => p instanceof JoiValidationPipe,
-  );
-  if (pipe) return joiToSwagger(pipe[`${_in}Schema`] as ObjectSchema).swagger;
+  )[`${metadata.in}Schema`];
+  if (schema) return joiToSwagger(schema as ObjectSchema).swagger;
 
   return undefined;
 }

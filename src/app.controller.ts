@@ -3,7 +3,6 @@ import { AppService } from './app.service';
 import { RuntimeException } from '@nestjs/core/errors/exceptions/runtime.exception';
 import { RfcParam } from './rfc.dto';
 import { phoneValidator } from './common/validator';
-import { ApiParam } from '@nestjs/swagger';
 
 @Controller()
 export class AppController {

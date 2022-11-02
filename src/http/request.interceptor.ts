@@ -20,7 +20,7 @@ export class RequestInterceptor implements NestInterceptor {
         return data;
       }),
       catchError((e) => {
-        this.logger.error(e);
+        this.logger.error(Object.assign({}, e));
         this.logger.debug(e.stack);
         return throwError(() =>
           e instanceof HttpException ? e : new InternalServerErrorException(e),

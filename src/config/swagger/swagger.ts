@@ -14,7 +14,6 @@ import {
   SchemaObject,
 } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
 import { zodToOpenAPI } from 'nestjs-zod';
-import { ObjectSchema } from 'joi';
 import joiToSwagger from 'joi-to-swagger';
 import { JoiValidationPipe } from '../../common/joi-pipe';
 
@@ -39,11 +38,7 @@ function setupSwagger(app: INestApplication) {
     operationIdFactory: (_controllerKey, methodKey) => methodKey,
   });
 
-  fs.writeFile(
-    'swagger.json',
-    JSON.stringify(document, null, 2),
-    () => undefined,
-  );
+  fs.writeFile('swagger.json', JSON.stringify(document, null, 2), () => null);
 
   SwaggerModule.setup(path, app, document);
 }
@@ -91,7 +86,7 @@ const groupController = () => {
 };
 
 /**
- * Add request param, query object and body schema
+ * Add request path, query object and body schema
  * */
 const validateRequest = () => {
   const _instance = ApiParametersExplorer as any;
@@ -109,11 +104,12 @@ const validateRequest = () => {
       (metadata) => {
         const schemaObject = getSchemaObject(metadata, method);
         if (!schemaObject) return;
+
         if (metadata.in === 'body') {
           // add body schema to swagger
           schemas[metadata.type?.name as string] = schemaObject;
-        } else {
-          // add param and query validation to swagger
+        } else if (metadata.in as ParameterLocation) {
+          // add path and query validation to swagger
           const required = new Set(schemaObject.required);
           const params: ParameterObject[] = Object.entries(
             schemaObject.properties as { [_: string]: SchemaObject },
@@ -149,7 +145,9 @@ const validateResponse = () => {
       Reflect.getMetadata(DECORATORS.API_RESPONSE, method) || {},
     ).forEach((metadata: any) => {
       const schemaObject = getSchemaObject(metadata, method);
-      if (schemaObject) schemas[metadata.type?.name as string] = schemaObject;
+      if (!schemaObject) return;
+      // add response schema to swagger
+      schemas[metadata.type?.name as string] = schemaObject;
     });
     return _super(schemas, instance, prototype, method);
   };
@@ -175,7 +173,7 @@ function getSchemaObject(metadata: any, method: any): SchemaObject | undefined {
 
   const schema = Reflect.getMetadata(PIPES_METADATA, method)?.find(
     (p: any) => p instanceof JoiValidationPipe,
-  )[`${metadata.in ?? 'response'}Schema`] as ObjectSchema;
+  )[`${metadata.in ?? 'response'}Schema`];
   if (schema) return joiToSwagger(schema).swagger;
 
   return undefined;

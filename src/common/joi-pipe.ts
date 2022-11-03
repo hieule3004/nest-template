@@ -13,6 +13,7 @@ export class JoiValidationPipe implements PipeTransform {
     private querySchema?: ObjectSchema,
     private paramSchema?: ObjectSchema,
     private bodySchema?: ObjectSchema,
+    private customSchema?: ObjectSchema,
   ) {}
 
   transform(value: any, metadata: ArgumentMetadata) {
@@ -30,6 +31,7 @@ export class JoiValidationPipe implements PipeTransform {
         errors = this.validateError(this.bodySchema, value, type, errors);
         break;
       case 'custom':
+        errors = this.validateError(this.customSchema, value, type, errors);
         break;
     }
 

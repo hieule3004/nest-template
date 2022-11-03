@@ -136,7 +136,8 @@ const validateAuth = () => {
     const metadata = ss
       .filter((scheme, i: number) => scheme && ss.indexOf(scheme) === i)
       .map((scheme) => ({ [scheme]: [] }));
-    Reflect.defineMetadata(DECORATORS.API_SECURITY, metadata, metatype);
+    if (metadata)
+      Reflect.defineMetadata(DECORATORS.API_SECURITY, metadata, metatype);
   };
 
   const _instance: any = ApiSecurityExplorer;
@@ -175,12 +176,21 @@ const validateRequest = () => {
   ) => {
     Object.values(_accessor.explore(instance, prototype, method) || {}).forEach(
       (metadata) => {
-        const schemaObject = getSchemaObject(metadata, method);
-        if (!schemaObject) return;
+        const sObj = getSchemaObject(metadata, method);
+        if (!sObj) return;
+        const { name, schemaObject } = sObj;
 
         if (metadata.in === 'body') {
           // add body schema to swagger
-          schemas[metadata.type?.name as string] = schemaObject;
+          if (name) schemas[name] = schemaObject;
+          else {
+            addParameters(method, {
+              type: schemaObject.type,
+              in: metadata.in,
+              required: true,
+              schema: schemaObject,
+            });
+          }
         } else if (metadata.in as ParameterLocation) {
           // add path and query validation to swagger
           const required = new Set(schemaObject.required);
@@ -192,13 +202,19 @@ const validateRequest = () => {
             in: metadata.in as ParameterLocation,
             required: required.has(name),
           }));
-          Reflect.defineMetadata(DECORATORS.API_PARAMETERS, params, method);
+          addParameters(method, ...params);
         }
       },
     );
     return _super(schemas, instance, prototype, method);
   };
 };
+
+function addParameters(metatype: any, ...params: any[]) {
+  let arr = Reflect.getMetadata(DECORATORS.API_PARAMETERS, metatype) || [];
+  arr = [...arr, ...params];
+  Reflect.defineMetadata(DECORATORS.API_PARAMETERS, arr, metatype);
+}
 
 //---- Response ----//
 
@@ -217,12 +233,19 @@ const validateResponse = () => {
     method: any,
   ) => {
     const resp = Reflect.getMetadata(DECORATORS.API_RESPONSE, method) || {};
-    Object.values(resp).forEach((metadata: any) => {
-      const schemaObject = getSchemaObject(metadata, method);
-      if (!schemaObject) return;
-      // add response schema to swagger
-      schemas[metadata.type?.name as string] = schemaObject;
-    });
+    const _resp = Object.entries(resp).reduce(
+      (target: any, [key, metadata]) => {
+        const sObj = getSchemaObject(metadata, method);
+        if (!sObj) return;
+        const { name, schemaObject } = sObj;
+        // add response schema to swagger
+        if (name) schemas[name] = schemaObject;
+        else target[key] = { schema: schemaObject };
+        return target;
+      },
+      resp,
+    );
+    if (resp) Reflect.defineMetadata(DECORATORS.API_RESPONSE, _resp, method);
     return _super(schemas, instance, prototype, method);
   };
 };
@@ -243,14 +266,21 @@ const validateEndpoint = () => {
 
 //---- Implementation-specific helper function ---//
 
-function getSchemaObject(metadata: any, method: any): SchemaObject | undefined {
-  if (metadata.type?.isZodDto) return zodToOpenAPI(metadata.type.schema);
+function getSchemaObject(
+  metadata: any,
+  method: any,
+): { name?: string; schemaObject: SchemaObject } | undefined {
+  if (metadata.type?.isZodDto)
+    return {
+      name: metadata.type?.name,
+      schemaObject: zodToOpenAPI(metadata.type.schema),
+    };
 
   const location = metadata.in === 'path' ? 'param' : metadata.in ?? 'custom';
   const pipes = Reflect.getMetadata(PIPES_METADATA, method);
   const joiPipe = pipes?.find((p: any) => p instanceof JoiValidationPipe);
   const schema = joiPipe?.[`${location}Schema`];
-  if (schema) return joiToSwagger(schema).swagger;
+  if (schema) return { schemaObject: joiToSwagger(schema).swagger };
 
   return undefined;
 }

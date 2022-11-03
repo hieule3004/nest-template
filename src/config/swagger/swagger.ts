@@ -166,14 +166,15 @@ const validateEndpoint = () => {
   };
 };
 
-//-- Validator-specific --//
+//---- Validator specific ---//
 
 function getSchemaObject(metadata: any, method: any): SchemaObject | undefined {
   if (metadata.type?.isZodDto) return zodToOpenAPI(metadata.type.schema);
 
-  const schema = Reflect.getMetadata(PIPES_METADATA, method)?.find(
-    (p: any) => p instanceof JoiValidationPipe,
-  )[`${metadata.in ?? 'response'}Schema`];
+  const location = metadata.in === 'path' ? 'param' : metadata.in ?? 'custom';
+  const pipes = Reflect.getMetadata(PIPES_METADATA, method);
+  const joiPipe = pipes?.find((p: any) => p instanceof JoiValidationPipe);
+  const schema = joiPipe?.[`${location}Schema`];
   if (schema) return joiToSwagger(schema).swagger;
 
   return undefined;

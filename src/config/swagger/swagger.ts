@@ -26,10 +26,11 @@ function setupSwagger(app: INestApplication) {
 
   const config = new DocumentBuilder()
     .addServer(path)
+    .addBasicAuth()
     .addBearerAuth()
-    .setTitle(process.env.npm_package_name || 'Swagger')
+    .setTitle(process.env.npm_package_name || '')
     .setDescription(process.env.npm_package_description || '')
-    .setVersion(process.env.npm_package_version || '1')
+    .setVersion(process.env.npm_package_version || '')
     .build();
 
   const document = SwaggerModule.createDocument(app, config, {
@@ -89,7 +90,7 @@ const groupController = () => {
  * Add request path, query object and body schema
  * */
 const validateRequest = () => {
-  const _instance = ApiParametersExplorer as any;
+  const _instance: any = ApiParametersExplorer;
   const _prop = 'exploreApiParametersMetadata';
 
   const _super = _instance[_prop];
@@ -131,19 +132,18 @@ const validateRequest = () => {
  * Add response schema
  * */
 const validateResponse = () => {
-  const _instance = ApiResponseExplorer as any;
+  const _instance: any = ApiResponseExplorer;
   const _prop = 'exploreApiResponseMetadata';
 
   const _super = _instance[_prop];
-  _instance[_prop] = function (
+  _instance[_prop] = (
     schemas: any,
     instance: any,
     prototype: any,
     method: any,
-  ) {
-    Object.values(
-      Reflect.getMetadata(DECORATORS.API_RESPONSE, method) || {},
-    ).forEach((metadata: any) => {
+  ) => {
+    const resp = Reflect.getMetadata(DECORATORS.API_RESPONSE, method) || {};
+    Object.values(resp).forEach((metadata: any) => {
       const schemaObject = getSchemaObject(metadata, method);
       if (!schemaObject) return;
       // add response schema to swagger
@@ -156,10 +156,10 @@ const validateResponse = () => {
 const validateEndpoint = () => {
   validateRequest();
   validateResponse();
-  // remove default schema creation, as handled manually
-  const _instance = SchemaObjectFactory as any;
-  const _prop = 'exploreModelSchema';
 
+  const _instance: any = SchemaObjectFactory;
+  const _prop = 'exploreModelSchema';
+  // remove default schema creation, handled manually above
   _instance.prototype[_prop] = function (type: any) {
     if (this.isLazyTypeFunc(type)) type = type();
     return type.name;

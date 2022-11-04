@@ -164,7 +164,7 @@ const validateRequest = () => {
   ) => {
     const params = Object.values(
       _accessor.explore(instance, prototype, method) || {},
-    ).reduce((target, metadata) => {
+    ).reduce((target: any[], metadata) => {
       const sObj = mapToSchemaObject(metadata, method);
       if (!sObj) return target;
       const { refName, schemaObject } = sObj;
@@ -197,7 +197,7 @@ const validateRequest = () => {
         });
         return target;
       }
-    }, [] as any[]);
+    }, []);
     appendMetadata(DECORATORS.API_PARAMETERS, method, ...params);
     return _super(schemas, instance, prototype, method);
   };

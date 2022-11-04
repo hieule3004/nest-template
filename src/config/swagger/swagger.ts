@@ -181,7 +181,7 @@ const validateRequest = () => {
               required: true,
             });
         } else {
-          // add path and query validation to swagger
+          // add path, query, header validation to swagger
           const required = new Set(schemaObject.required);
           const params: any[] = Object.entries(
             schemaObject.properties as { [_: string]: SchemaObject },

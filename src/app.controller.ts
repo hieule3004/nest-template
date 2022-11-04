@@ -1,8 +1,10 @@
-import { Body, Controller, Get, Req } from '@nestjs/common';
+import { Body, Controller, Get, Param, Req, UsePipes } from '@nestjs/common';
 import { AppService } from './app.service';
 import { RuntimeException } from '@nestjs/core/errors/exceptions/runtime.exception';
-import { RfcParam, RfcResponse } from './rfc.dto';
+import { RfcParam, RfcParamJoiSchema, RfcResponse } from './rfc.dto';
 import { phoneValidator } from './common/validator';
+import { JoiValidationPipe } from './common/joi-pipe';
+import * as joi from 'joi';
 
 @Controller()
 export class AppController {
@@ -24,7 +26,12 @@ export class AppController {
   }
 
   @Get('rfc/:value')
-  getRfc(@Req() req: any, @Body() { value }: RfcParam): RfcResponse {
+  @UsePipes(new JoiValidationPipe(undefined, joi.number(), RfcParamJoiSchema))
+  getRfc(
+    @Req() req: any,
+    @Param('abc') param: any,
+    @Body() { value }: any,
+  ): RfcResponse {
     return { result: phoneValidator(String(value)) };
   }
 }

@@ -3,7 +3,7 @@ import {
   BadRequestException,
   PipeTransform,
 } from '@nestjs/common';
-import { ObjectSchema } from 'joi';
+import { NumberSchema, ObjectSchema } from 'joi';
 
 const DEFAULT_SKIP = 0;
 const DEFAULT_LIMIT = 100;
@@ -11,7 +11,7 @@ const DEFAULT_LIMIT = 100;
 export class JoiValidationPipe implements PipeTransform {
   constructor(
     private querySchema?: ObjectSchema,
-    private paramSchema?: ObjectSchema,
+    private paramSchema?: NumberSchema,
     private bodySchema?: ObjectSchema,
     private customSchema?: ObjectSchema,
   ) {}

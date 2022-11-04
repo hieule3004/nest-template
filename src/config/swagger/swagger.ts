@@ -11,7 +11,6 @@ import { SchemaObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.inte
 import { ParameterMetadataAccessor } from '@nestjs/swagger/dist/services/parameter-metadata-accessor';
 import { SchemaObjectFactory } from '@nestjs/swagger/dist/services/schema-object-factory';
 import { extendMetadata } from '@nestjs/swagger/dist/utils/extend-metadata.util';
-import { isBodyParameter } from '@nestjs/swagger/dist/utils/is-body-parameter.util';
 import * as fs from 'fs';
 import {
   getApiPrefix,
@@ -169,21 +168,16 @@ const validateRequest = () => {
         const sObj = mapToSchemaObject(metadata, method);
         if (!sObj) return;
         const { refName, schemaObject } = sObj;
+        const isBody = metadata.in === 'body';
 
-        if (isBodyParameter(metadata)) {
-          // add body schema to swagger
-          if (refName) schemas[refName] = schemaObject;
-          else
-            appendMetadata(DECORATORS.API_PARAMETERS, method, {
-              schema: schemaObject,
-              type: schemaObject.type,
-              in: metadata.in,
-              required: true,
-            });
-        } else {
-          // add path, query, header validation to swagger
+        const params: any[] = [];
+        if (isBody && refName) {
+          // add body ref to swagger
+          schemas[refName] = schemaObject;
+        } else if (!isBody && schemaObject.type === 'object') {
+          // add header, param, query as key-value
           const required = new Set(schemaObject.required);
-          const params: any[] = Object.entries(
+          const arr = Object.entries(
             schemaObject.properties as { [_: string]: SchemaObject },
           ).map(([name, { type }]) => ({
             name,
@@ -191,8 +185,18 @@ const validateRequest = () => {
             in: metadata.in,
             required: required.has(name),
           }));
-          appendMetadata(DECORATORS.API_PARAMETERS, method, ...params);
+          params.concat(arr);
+        } else {
+          // add non-object request parameter
+          params.push({
+            name: metadata.name,
+            type: schemaObject.type,
+            schema: schemaObject,
+            in: metadata.in,
+            required: metadata.required,
+          });
         }
+        appendMetadata(DECORATORS.API_PARAMETERS, method, ...params);
       },
     );
     return _super(schemas, instance, prototype, method);

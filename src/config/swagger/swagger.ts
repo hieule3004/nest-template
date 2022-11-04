@@ -237,11 +237,11 @@ const validateEndpoint = () => {
   validateRequest();
   validateResponse();
 
-  const _instance: any = SchemaObjectFactory;
+  const _prototype: any = SchemaObjectFactory.prototype;
   const _prop = 'exploreModelSchema';
   // remove default schema creation, handled manually above
-  _instance.prototype[_prop] = function (type: any) {
-    if (this.isLazyTypeFunc(type)) type = type();
+  _prototype[_prop] = (type: any) => {
+    if (_prototype.isLazyTypeFunc(type)) type = type();
     return type.name;
   };
 };

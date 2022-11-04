@@ -1,8 +1,7 @@
-import * as fs from 'fs';
 import { INestApplication } from '@nestjs/common';
 import { GUARDS_METADATA, PATH_METADATA } from '@nestjs/common/constants';
+import * as Passport from '@nestjs/passport/dist/auth.guard';
 import { SwaggerModule } from '@nestjs/swagger';
-import * as PassportInterceptor from '@nestjs/passport/dist/auth.guard';
 import { DECORATORS } from '@nestjs/swagger/dist/constants';
 import * as ApiParametersExplorer from '@nestjs/swagger/dist/explorers/api-parameters.explorer';
 import * as ApiResponseExplorer from '@nestjs/swagger/dist/explorers/api-response.explorer';
@@ -11,8 +10,9 @@ import * as ApiUseTagsExplorer from '@nestjs/swagger/dist/explorers/api-use-tags
 import { SchemaObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
 import { ParameterMetadataAccessor } from '@nestjs/swagger/dist/services/parameter-metadata-accessor';
 import { SchemaObjectFactory } from '@nestjs/swagger/dist/services/schema-object-factory';
-import { isBodyParameter } from '@nestjs/swagger/dist/utils/is-body-parameter.util';
 import { extendMetadata } from '@nestjs/swagger/dist/utils/extend-metadata.util';
+import { isBodyParameter } from '@nestjs/swagger/dist/utils/is-body-parameter.util';
+import * as fs from 'fs';
 import {
   getApiPrefix,
   getAuthSchemes,
@@ -86,20 +86,19 @@ const groupController = () => {
 //---- Authentication ----//
 
 const AUTH_METADATA = '__swagger_auth_scheme__';
-const authSchemes = getAuthSchemes();
+
+// reverse lookup map for auths
+const authMap = Object.entries(getAuthSchemes()).reduce(
+  (target, [scheme, types]) =>
+    types.reduce((obj, type) => {
+      obj[type] = scheme;
+      return obj;
+    }, target),
+  {} as { [_: string]: string },
+);
 
 const interceptGuard = () => {
-  // reverse lookup map for auths
-  const authMap = Object.entries(authSchemes).reduce(
-    (target, [scheme, types]) =>
-      types.reduce((obj, type) => {
-        obj[type] = scheme;
-        return obj;
-      }, target),
-    {} as { [_: string]: string },
-  );
-
-  const _instance: any = PassportInterceptor;
+  const _instance: any = Passport;
 
   const _prop = 'AuthGuard';
   const _super = _instance[_prop];
@@ -154,6 +153,7 @@ const validateAuth = () => {
  * */
 const validateRequest = () => {
   const _accessor = new ParameterMetadataAccessor();
+
   const _instance: any = ApiParametersExplorer;
 
   const _prop = 'exploreApiParametersMetadata';
@@ -206,8 +206,8 @@ const validateRequest = () => {
  * */
 const validateResponse = () => {
   const _instance: any = ApiResponseExplorer;
-  const _prop = 'exploreApiResponseMetadata';
 
+  const _prop = 'exploreApiResponseMetadata';
   const _super = _instance[_prop];
   _instance[_prop] = (
     schemas: any,

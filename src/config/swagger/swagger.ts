@@ -10,7 +10,6 @@ import * as ApiUseTagsExplorer from '@nestjs/swagger/dist/explorers/api-use-tags
 import { SchemaObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
 import { ParameterMetadataAccessor } from '@nestjs/swagger/dist/services/parameter-metadata-accessor';
 import { SchemaObjectFactory } from '@nestjs/swagger/dist/services/schema-object-factory';
-import { extendMetadata } from '@nestjs/swagger/dist/utils/extend-metadata.util';
 import * as fs from 'fs';
 import {
   getApiPrefix,
@@ -163,42 +162,43 @@ const validateRequest = () => {
     prototype: any,
     method: any,
   ) => {
-    Object.values(_accessor.explore(instance, prototype, method) || {}).forEach(
-      (metadata) => {
-        const sObj = mapToSchemaObject(metadata, method);
-        if (!sObj) return;
-        const { refName, schemaObject } = sObj;
-        const isBody = metadata.in === 'body';
+    const params = Object.values(
+      _accessor.explore(instance, prototype, method) || {},
+    ).reduce((target, metadata) => {
+      const sObj = mapToSchemaObject(metadata, method);
+      if (!sObj) return target;
+      const { refName, schemaObject } = sObj;
 
-        const params: any[] = [];
-        if (isBody && refName) {
-          // add body ref to swagger
-          schemas[refName] = schemaObject;
-        } else if (!isBody && schemaObject.type === 'object') {
-          // add header, param, query as key-value
-          const required = new Set(schemaObject.required);
-          const arr = Object.entries(
-            schemaObject.properties as { [_: string]: SchemaObject },
-          ).map(([name, { type }]) => ({
-            name,
-            type,
-            in: metadata.in,
-            required: required.has(name),
-          }));
-          params.concat(arr);
-        } else {
-          // add non-object request parameter
-          params.push({
-            name: metadata.name,
-            type: schemaObject.type,
-            schema: schemaObject,
-            in: metadata.in,
-            required: metadata.required,
-          });
-        }
-        appendMetadata(DECORATORS.API_PARAMETERS, method, ...params);
-      },
-    );
+      const isBody = metadata.in === 'body';
+      if (isBody && refName) {
+        // add body ref to swagger
+        schemas[refName] = schemaObject;
+        return target;
+      } else if (!isBody && schemaObject.type === 'object') {
+        // add header, param, query as key-value
+        const required = new Set(schemaObject.required);
+        const arr = Object.entries(
+          schemaObject.properties as { [_: string]: SchemaObject },
+        ).map(([name, { type }]) => ({
+          name,
+          type,
+          in: metadata.in,
+          required: required.has(name),
+        }));
+        return target.concat(arr);
+      } else {
+        // add non-object request parameter
+        target.push({
+          name: metadata.name,
+          type: schemaObject.type,
+          schema: schemaObject,
+          in: metadata.in,
+          required: metadata.required,
+        });
+        return target;
+      }
+    }, [] as any[]);
+    appendMetadata(DECORATORS.API_PARAMETERS, method, ...params);
     return _super(schemas, instance, prototype, method);
   };
 };
@@ -223,7 +223,7 @@ const validateResponse = () => {
     const _resp = Object.entries(resp).reduce(
       (target: any, [key, metadata]) => {
         const sObj = mapToSchemaObject(metadata, method);
-        if (!sObj) return;
+        if (!sObj) return target;
         const { refName, schemaObject } = sObj;
         // add response schema to swagger
         if (refName) schemas[refName] = schemaObject;
@@ -253,8 +253,11 @@ const validateEndpoint = () => {
 //---- Utils function ----//
 
 function appendMetadata(key: string, metatype: any, ...metadata: any[]) {
-  const newMetadata = extendMetadata(metadata, key, metatype);
-  Reflect.defineMetadata(key, newMetadata, metatype);
+  const existingMetadata = Reflect.getMetadata(key, metatype);
+  const joinedMetadata = existingMetadata
+    ? existingMetadata.concat(metadata)
+    : metadata;
+  Reflect.defineMetadata(key, joinedMetadata, metatype);
 }
 
 export { setupSwagger };

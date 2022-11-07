@@ -7,6 +7,7 @@ import * as ApiParametersExplorer from '@nestjs/swagger/dist/explorers/api-param
 import * as ApiResponseExplorer from '@nestjs/swagger/dist/explorers/api-response.explorer';
 import * as ApiSecurityExplorer from '@nestjs/swagger/dist/explorers/api-security.explorer';
 import * as ApiUseTagsExplorer from '@nestjs/swagger/dist/explorers/api-use-tags.explorer';
+import * as GetSchemaPath from '@nestjs/swagger/dist/utils/get-schema-path.util';
 import { SchemaObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
 import { ParameterMetadataAccessor } from '@nestjs/swagger/dist/services/parameter-metadata-accessor';
 import { SchemaObjectFactory } from '@nestjs/swagger/dist/services/schema-object-factory';
@@ -50,10 +51,10 @@ const groupController = () => {
 
   const _instance: any = ApiUseTagsExplorer;
 
-  // Method override, register callbacks
-  const _propM = 'exploreApiTagsMetadata';
-  const _superM = _instance[_propM];
-  _instance[_propM] = (instance: any, prototype: any, method: any) => {
+  // local override, register callbacks
+  const _propL = 'exploreApiTagsMetadata';
+  const _superL = _instance[_propL];
+  _instance[_propL] = (instance: any, prototype: any, method: any) => {
     let cbs = Reflect.getMetadata(KEY, prototype);
     if (!cbs) {
       cbs = [];
@@ -65,19 +66,19 @@ const groupController = () => {
       metadata = metadata[0] === '/' ? metadata.substring(1) : metadata;
       Reflect.defineMetadata(DECORATORS.API_TAGS, [metadata], metatype);
     });
-    return _superM(instance, prototype, method);
+    return _superL(instance, prototype, method);
   };
 
-  // Class override, execute callbacks
-  const _propC = 'exploreGlobalApiTagsMetadata';
-  const _superC = _instance[_propC];
-  _instance[_propC] = (metatype: any) => {
+  // global override, execute callbacks
+  const _propG = 'exploreGlobalApiTagsMetadata';
+  const _superG = _instance[_propG];
+  _instance[_propG] = (metatype: any) => {
     const cbs: any[] = Reflect.getMetadata(KEY, metatype.prototype);
     if (cbs) {
       for (const cb of cbs) cb(metatype);
       Reflect.deleteMetadata(KEY, metatype.prototype);
     }
-    return _superC(metatype);
+    return _superG(metatype);
   };
 };
 
@@ -114,36 +115,69 @@ const interceptGuard = () => {
  * Add auth method based on AuthGuard
  * */
 const validateAuth = () => {
+  const KEY = '__swagger_scheme_cm__';
   interceptGuard();
   // add security metadata to swagger
-  const addAuthMetadata = (metatype: any) => {
+  const addAuthMetadata = (metatype: any, schemes: string[] = []) => {
     const ss: string[] = (
       Reflect.getMetadata(GUARDS_METADATA, metatype) || []
     ).map((guard: any) => Reflect.getMetadata(AUTH_METADATA, guard));
     const metadata = ss
-      .filter((scheme, i: number) => scheme && ss.indexOf(scheme) === i)
+      .filter(
+        (scheme, i: number) =>
+          scheme && !schemes.includes(scheme) && ss.indexOf(scheme) === i,
+      )
       .map((scheme) => ({ [scheme]: [] }));
-    appendMetadata(DECORATORS.API_SECURITY, metatype, ...metadata);
+    appendMetadata(DECORATORS.API_SECURITY, metatype, metadata);
   };
 
   const _instance: any = ApiSecurityExplorer;
 
-  const _propG = 'exploreGlobalApiSecurityMetadata';
-  const _superG = _instance[_propG];
-  _instance[_propG] = (metatype: any) => {
-    addAuthMetadata(metatype);
-    return _superG(metatype);
-  };
-
+  // local override, register callback
   const _propL = 'exploreApiSecurityMetadata';
   const _superL = _instance[_propL];
   _instance[_propL] = (instance: any, prototype: any, method: any) => {
-    addAuthMetadata(method);
+    let cbs = Reflect.getMetadata(KEY, prototype);
+    if (!cbs) {
+      cbs = [];
+      Reflect.defineMetadata(KEY, cbs, prototype);
+    }
+    // register local callback, add local auth swagger
+    cbs.push((schemes: string[]) => addAuthMetadata(method, schemes));
     return _superL(instance, prototype, method);
+  };
+
+  // global override, execute callback
+  const _propG = 'exploreGlobalApiSecurityMetadata';
+  const _superG = _instance[_propG];
+  _instance[_propG] = (metatype: any) => {
+    // add global auth swagger
+    addAuthMetadata(metatype);
+    // get global schemes
+    const globalSchemes: string[] = (
+      Reflect.getMetadata(DECORATORS.API_SECURITY, metatype) || []
+    ).map(Object.keys);
+    // run local callbacks
+    const cbs: any[] = Reflect.getMetadata(KEY, metatype.prototype);
+    if (cbs) {
+      for (const cb of cbs) cb(globalSchemes);
+      Reflect.deleteMetadata(KEY, metatype.prototype);
+    }
+    return _superG(metatype);
   };
 };
 
 //---- Request ----//
+
+/** Fix ref path resolving null object */
+const interceptRefPathResolver = () => {
+  const _instance: any = GetSchemaPath;
+  const _prop = 'getSchemaPath';
+  const _super = _instance[_prop];
+  _instance[_prop] = function (model: any) {
+    return model ? _super(model) : undefined;
+  };
+};
 
 /**
  * Add request path, query object and body schema
@@ -188,17 +222,18 @@ const validateRequest = () => {
         return target.concat(arr);
       } else {
         // add non-object request parameter
-        target.push({
-          name: metadata.name,
+        const obj: any = {
           type: schemaObject.type,
           schema: schemaObject,
           in: metadata.in,
           required: metadata.required,
-        });
+        };
+        if (metadata.name) obj.name = metadata.name;
+        target.push(obj);
         return target;
       }
     }, []);
-    appendMetadata(DECORATORS.API_PARAMETERS, method, ...params);
+    appendMetadata(DECORATORS.API_PARAMETERS, method, params);
     return _super(schemas, instance, prototype, method);
   };
 };
@@ -238,6 +273,7 @@ const validateResponse = () => {
 };
 
 const validateEndpoint = () => {
+  interceptRefPathResolver();
   validateRequest();
   validateResponse();
 
@@ -252,7 +288,7 @@ const validateEndpoint = () => {
 
 //---- Utils function ----//
 
-function appendMetadata(key: string, metatype: any, ...metadata: any[]) {
+function appendMetadata(key: string, metatype: any, metadata: any[]) {
   const existingMetadata = Reflect.getMetadata(key, metatype);
   const joinedMetadata = existingMetadata
     ? existingMetadata.concat(metadata)

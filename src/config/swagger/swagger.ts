@@ -115,54 +115,38 @@ const interceptGuard = () => {
  * Add auth method based on AuthGuard
  * */
 const validateAuth = () => {
-  const KEY = '__swagger_scheme_cm__';
   interceptGuard();
   // add security metadata to swagger
+  const seen: Record<string, any> = {};
   const addAuthMetadata = (metatype: any, schemes: string[] = []) => {
+    if (seen[metatype.name]) return;
+
     const ss: string[] = (
       Reflect.getMetadata(GUARDS_METADATA, metatype) || []
     ).map((guard: any) => Reflect.getMetadata(AUTH_METADATA, guard));
     const metadata = ss
-      .filter(
-        (scheme, i: number) =>
-          scheme && !schemes.includes(scheme) && ss.indexOf(scheme) === i,
-      )
+      .filter((s, i) => s && !schemes.includes(s) && ss.indexOf(s) === i)
       .map((scheme) => ({ [scheme]: [] }));
     appendMetadata(DECORATORS.API_SECURITY, metatype, metadata);
+    seen[metatype.name] = metadata;
   };
 
   const _instance: any = ApiSecurityExplorer;
 
-  // local override, register callback
   const _propL = 'exploreApiSecurityMetadata';
   const _superL = _instance[_propL];
   _instance[_propL] = (instance: any, prototype: any, method: any) => {
-    let cbs = Reflect.getMetadata(KEY, prototype);
-    if (!cbs) {
-      cbs = [];
-      Reflect.defineMetadata(KEY, cbs, prototype);
-    }
-    // register local callback, add local auth swagger
-    cbs.push((schemes: string[]) => addAuthMetadata(method, schemes));
+    const globalSchemes: string[] = (
+      seen[instance.constructor.name] || []
+    ).flatMap(Object.keys);
+    addAuthMetadata(method, globalSchemes);
     return _superL(instance, prototype, method);
   };
 
-  // global override, execute callback
   const _propG = 'exploreGlobalApiSecurityMetadata';
   const _superG = _instance[_propG];
   _instance[_propG] = (metatype: any) => {
-    // add global auth swagger
     addAuthMetadata(metatype);
-    // get global schemes
-    const globalSchemes: string[] = (
-      Reflect.getMetadata(DECORATORS.API_SECURITY, metatype) || []
-    ).map(Object.keys);
-    // run local callbacks
-    const cbs: any[] = Reflect.getMetadata(KEY, metatype.prototype);
-    if (cbs) {
-      for (const cb of cbs) cb(globalSchemes);
-      Reflect.deleteMetadata(KEY, metatype.prototype);
-    }
     return _superG(metatype);
   };
 };

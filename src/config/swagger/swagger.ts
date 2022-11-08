@@ -15,7 +15,9 @@ import * as fs from 'fs';
 import {
   getApiPrefix,
   getAuthSchemes,
+  getCustomOptions,
   getDocumentBuilder,
+  getDocumentOptions,
   mapToSchemaObject,
 } from './config';
 
@@ -27,16 +29,14 @@ function setupSwagger(app: INestApplication) {
   validateEndpoint();
 
   const config = getDocumentBuilder().build();
+  const documentOptions = getDocumentOptions();
+  const document = SwaggerModule.createDocument(app, config, documentOptions);
 
-  const document = SwaggerModule.createDocument(app, config, {
-    deepScanRoutes: true,
-    ignoreGlobalPrefix: true,
-    operationIdFactory: (_controllerKey, methodKey) => methodKey,
-  });
+  const jsonString = JSON.stringify(document, null, 2);
+  fs.writeFile('swagger.json', jsonString, () => null);
 
-  fs.writeFile('swagger.json', JSON.stringify(document, null, 2), () => null);
-
-  SwaggerModule.setup(getApiPrefix(), app, document);
+  const customOptions = getCustomOptions();
+  SwaggerModule.setup(getApiPrefix(), app, document, customOptions);
 }
 
 /**
@@ -240,13 +240,18 @@ const validateResponse = () => {
   ) => {
     const resp = Reflect.getMetadata(DECORATORS.API_RESPONSE, method) || {};
     const _resp = Object.entries(resp).reduce(
-      (target: any, [key, metadata]) => {
+      (target: any, [key, metadata]: any[]) => {
         const sObj = mapToSchemaObject(metadata, method);
         if (!sObj) return target;
         const { refName, schemaObject } = sObj;
         // add response schema to swagger
         if (refName) schemas[refName] = schemaObject;
-        else target[key] = { schema: schemaObject };
+        else
+          target[key] = {
+            schema: schemaObject,
+            isArray: metadata.isArray,
+            description: metadata.description,
+          };
         return target;
       },
       resp,
@@ -264,9 +269,13 @@ const validateEndpoint = () => {
   const _prototype: any = SchemaObjectFactory.prototype;
   const _prop = 'exploreModelSchema';
   // remove default schema creation, handled manually above
-  _prototype[_prop] = (type: any) => {
+  _prototype[_prop] = (type: any, schemas: any[]) => {
     if (_prototype.isLazyTypeFunc(type)) type = type();
-    return type.name;
+    const sObj = mapToSchemaObject({ type }, () => null);
+    if (!sObj) return type.name;
+    const { refName, schemaObject } = sObj;
+    if (refName) schemas.push({ [refName]: schemaObject });
+    return refName;
   };
 };
 

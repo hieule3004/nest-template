@@ -115,20 +115,23 @@ const interceptGuard = () => {
  * Add auth method based on AuthGuard
  * */
 const validateAuth = () => {
+  // setup auth metadata to be processed
   interceptGuard();
-  // add security metadata to swagger
-  const seen: Record<string, any> = {};
-  const addAuthMetadata = (metatype: any, schemes: string[] = []) => {
-    if (seen[metatype.name]) return;
 
-    const ss: string[] = (
-      Reflect.getMetadata(GUARDS_METADATA, metatype) || []
-    ).map((guard: any) => Reflect.getMetadata(AUTH_METADATA, guard));
-    const metadata = ss
-      .filter((s, i) => s && !schemes.includes(s) && ss.indexOf(s) === i)
-      .map((scheme) => ({ [scheme]: [] }));
+  // add security metadata to swagger
+  const updated: Record<'class' | 'method', Record<string, string[]>> = {
+    class: {},
+    method: {},
+  };
+  const updateAuthMetadata = (metatype: any, schemes: string[] = []) => {
+    const cache = updated[metatype.prototype ? 'class' : 'method'];
+    if (metatype.name in cache) return;
+    const newSchemes = (Reflect.getMetadata(GUARDS_METADATA, metatype) || [])
+      .map((guard: any) => Reflect.getMetadata(AUTH_METADATA, guard))
+      .filter((s: string) => s && !schemes.includes(s)) as string[];
+    const metadata = newSchemes.map((scheme) => ({ [scheme]: [] }));
     appendMetadata(DECORATORS.API_SECURITY, metatype, metadata);
-    seen[metatype.name] = metadata;
+    cache[metatype.name] = newSchemes;
   };
 
   const _instance: any = ApiSecurityExplorer;
@@ -136,17 +139,16 @@ const validateAuth = () => {
   const _propL = 'exploreApiSecurityMetadata';
   const _superL = _instance[_propL];
   _instance[_propL] = (instance: any, prototype: any, method: any) => {
-    const globalSchemes: string[] = (
-      seen[instance.constructor.name] || []
-    ).flatMap(Object.keys);
-    addAuthMetadata(method, globalSchemes);
+    const schemes = updated.class[instance.constructor.name] || [];
+    updateAuthMetadata(method, schemes);
     return _superL(instance, prototype, method);
   };
 
+  // global override, execute callback
   const _propG = 'exploreGlobalApiSecurityMetadata';
   const _superG = _instance[_propG];
   _instance[_propG] = (metatype: any) => {
-    addAuthMetadata(metatype);
+    updateAuthMetadata(metatype);
     return _superG(metatype);
   };
 };
@@ -269,12 +271,12 @@ const validateEndpoint = () => {
   const _prototype: any = SchemaObjectFactory.prototype;
   const _prop = 'exploreModelSchema';
   // remove default schema creation, handled manually above
-  _prototype[_prop] = (type: any, schemas: any[]) => {
+  _prototype[_prop] = (type: any, schemas: any) => {
     if (_prototype.isLazyTypeFunc(type)) type = type();
     const sObj = mapToSchemaObject({ type }, () => null);
     if (!sObj) return type.name;
     const { refName, schemaObject } = sObj;
-    if (refName) schemas.push({ [refName]: schemaObject });
+    if (refName) schemas[refName] = schemaObject;
     return refName;
   };
 };

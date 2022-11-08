@@ -7,6 +7,7 @@ import {
 import { SchemaObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
 import joiToSwagger from 'joi-to-swagger';
 import { JoiValidationPipe } from '../../common/joi-pipe';
+import { zodToOpenAPI } from 'nestjs-zod';
 
 const getApiPrefix = () => process.env.API_PREFIX || '/api';
 
@@ -49,14 +50,12 @@ function mapToSchemaObject(
   metadata: any,
   method?: any,
 ): { refName?: string; schemaObject: SchemaObject } | undefined {
-  /** @example remove comment for Zod, should use nestjs-zod
-   // Zod to Swagger
-   if (metadata.type?.isZodDto)
-   return {
+  // Zod to Swagger
+  if (metadata.type?.isZodDto)
+    return {
       refName: metadata.type?.name,
       schemaObject: zodToOpenAPI(metadata.type.schema),
     };
-   * */
 
   // Joi to Swagger
   const location = metadata.in === 'path' ? 'param' : metadata.in ?? 'custom';

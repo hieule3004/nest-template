@@ -273,10 +273,11 @@ const validateEndpoint = () => {
   // remove default schema creation, handled manually above
   _prototype[_prop] = (type: any, schemas: any) => {
     if (_prototype.isLazyTypeFunc(type)) type = type();
+    if (type.name in schemas) return type.name;
     const sObj = mapToSchemaObject({ type }, () => null);
     if (!sObj) return type.name;
     const { refName, schemaObject } = sObj;
-    if (refName && !(refName in schemas)) schemas[refName] = schemaObject;
+    if (refName) schemas[refName] = schemaObject;
     return refName;
   };
 };

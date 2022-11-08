@@ -276,7 +276,7 @@ const validateEndpoint = () => {
     const sObj = mapToSchemaObject({ type }, () => null);
     if (!sObj) return type.name;
     const { refName, schemaObject } = sObj;
-    if (refName) schemas[refName] = schemaObject;
+    if (refName && !(refName in schemas)) schemas[refName] = schemaObject;
     return refName;
   };
 };

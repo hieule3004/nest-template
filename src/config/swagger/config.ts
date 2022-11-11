@@ -1,12 +1,9 @@
-import { PIPES_METADATA } from '@nestjs/common/constants';
 import {
   DocumentBuilder,
   SwaggerCustomOptions,
   SwaggerDocumentOptions,
 } from '@nestjs/swagger';
 import { SchemaObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
-import joiToSwagger from 'joi-to-swagger';
-import { JoiValidationPipe } from '../../common/joi-pipe';
 import { zodToOpenAPI } from 'nestjs-zod';
 
 const getApiPrefix = () => process.env.API_PREFIX || '/api';
@@ -56,13 +53,6 @@ function mapToSchemaObject(
       refName: metadata.type?.name,
       schemaObject: zodToOpenAPI(metadata.type.schema),
     };
-
-  // Joi to Swagger
-  const location = metadata.in === 'path' ? 'param' : metadata.in ?? 'custom';
-  const pipes = Reflect.getMetadata(PIPES_METADATA, method);
-  const joiPipe = pipes?.find((p: any) => p instanceof JoiValidationPipe);
-  const schema = joiPipe?.[`${location}Schema`];
-  if (schema) return { schemaObject: joiToSwagger(schema).swagger };
 
   // basic raw type
   let type: any = metadata.type;

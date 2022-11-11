@@ -7,16 +7,17 @@ import * as ApiParametersExplorer from '@nestjs/swagger/dist/explorers/api-param
 import * as ApiResponseExplorer from '@nestjs/swagger/dist/explorers/api-response.explorer';
 import * as ApiSecurityExplorer from '@nestjs/swagger/dist/explorers/api-security.explorer';
 import * as ApiUseTagsExplorer from '@nestjs/swagger/dist/explorers/api-use-tags.explorer';
+import * as GetSchemaPath from '@nestjs/swagger/dist/utils/get-schema-path.util';
 import { SchemaObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
 import { ParameterMetadataAccessor } from '@nestjs/swagger/dist/services/parameter-metadata-accessor';
 import { SchemaObjectFactory } from '@nestjs/swagger/dist/services/schema-object-factory';
-import { extendMetadata } from '@nestjs/swagger/dist/utils/extend-metadata.util';
-import { isBodyParameter } from '@nestjs/swagger/dist/utils/is-body-parameter.util';
 import * as fs from 'fs';
 import {
   getApiPrefix,
   getAuthSchemes,
+  getCustomOptions,
   getDocumentBuilder,
+  getDocumentOptions,
   mapToSchemaObject,
 } from './config';
 
@@ -28,16 +29,14 @@ function setupSwagger(app: INestApplication) {
   validateEndpoint();
 
   const config = getDocumentBuilder().build();
+  const documentOptions = getDocumentOptions();
+  const document = SwaggerModule.createDocument(app, config, documentOptions);
 
-  const document = SwaggerModule.createDocument(app, config, {
-    deepScanRoutes: true,
-    ignoreGlobalPrefix: true,
-    operationIdFactory: (_controllerKey, methodKey) => methodKey,
-  });
+  const jsonString = JSON.stringify(document, null, 2);
+  fs.writeFile('swagger.json', jsonString, () => null);
 
-  fs.writeFile('swagger.json', JSON.stringify(document, null, 2), () => null);
-
-  SwaggerModule.setup(getApiPrefix(), app, document);
+  const customOptions = getCustomOptions();
+  SwaggerModule.setup(getApiPrefix(), app, document, customOptions);
 }
 
 /**
@@ -52,10 +51,10 @@ const groupController = () => {
 
   const _instance: any = ApiUseTagsExplorer;
 
-  // Method override, register callbacks
-  const _propM = 'exploreApiTagsMetadata';
-  const _superM = _instance[_propM];
-  _instance[_propM] = (instance: any, prototype: any, method: any) => {
+  // local override, register callbacks
+  const _propL = 'exploreApiTagsMetadata';
+  const _superL = _instance[_propL];
+  _instance[_propL] = (instance: any, prototype: any, method: any) => {
     let cbs = Reflect.getMetadata(KEY, prototype);
     if (!cbs) {
       cbs = [];
@@ -67,19 +66,19 @@ const groupController = () => {
       metadata = metadata[0] === '/' ? metadata.substring(1) : metadata;
       Reflect.defineMetadata(DECORATORS.API_TAGS, [metadata], metatype);
     });
-    return _superM(instance, prototype, method);
+    return _superL(instance, prototype, method);
   };
 
-  // Class override, execute callbacks
-  const _propC = 'exploreGlobalApiTagsMetadata';
-  const _superC = _instance[_propC];
-  _instance[_propC] = (metatype: any) => {
+  // global override, execute callbacks
+  const _propG = 'exploreGlobalApiTagsMetadata';
+  const _superG = _instance[_propG];
+  _instance[_propG] = (metatype: any) => {
     const cbs: any[] = Reflect.getMetadata(KEY, metatype.prototype);
     if (cbs) {
       for (const cb of cbs) cb(metatype);
       Reflect.deleteMetadata(KEY, metatype.prototype);
     }
-    return _superC(metatype);
+    return _superG(metatype);
   };
 };
 
@@ -116,36 +115,55 @@ const interceptGuard = () => {
  * Add auth method based on AuthGuard
  * */
 const validateAuth = () => {
+  // setup auth metadata to be processed
   interceptGuard();
+
   // add security metadata to swagger
-  const addAuthMetadata = (metatype: any) => {
-    const ss: string[] = (
-      Reflect.getMetadata(GUARDS_METADATA, metatype) || []
-    ).map((guard: any) => Reflect.getMetadata(AUTH_METADATA, guard));
-    const metadata = ss
-      .filter((scheme, i: number) => scheme && ss.indexOf(scheme) === i)
-      .map((scheme) => ({ [scheme]: [] }));
-    appendMetadata(DECORATORS.API_SECURITY, metatype, ...metadata);
+  const updated: Record<'class' | 'method', Record<string, string[]>> = {
+    class: {},
+    method: {},
+  };
+  const updateAuthMetadata = (metatype: any, schemes: string[] = []) => {
+    const cache = updated[metatype.prototype ? 'class' : 'method'];
+    if (metatype.name in cache) return;
+    const newSchemes = (Reflect.getMetadata(GUARDS_METADATA, metatype) || [])
+      .map((guard: any) => Reflect.getMetadata(AUTH_METADATA, guard))
+      .filter((s: string) => s && !schemes.includes(s)) as string[];
+    const metadata = newSchemes.map((scheme) => ({ [scheme]: [] }));
+    appendMetadata(DECORATORS.API_SECURITY, metatype, metadata);
+    cache[metatype.name] = newSchemes;
   };
 
   const _instance: any = ApiSecurityExplorer;
 
-  const _propG = 'exploreGlobalApiSecurityMetadata';
-  const _superG = _instance[_propG];
-  _instance[_propG] = (metatype: any) => {
-    addAuthMetadata(metatype);
-    return _superG(metatype);
-  };
-
   const _propL = 'exploreApiSecurityMetadata';
   const _superL = _instance[_propL];
   _instance[_propL] = (instance: any, prototype: any, method: any) => {
-    addAuthMetadata(method);
+    const schemes = updated.class[instance.constructor.name] || [];
+    updateAuthMetadata(method, schemes);
     return _superL(instance, prototype, method);
+  };
+
+  // global override, execute callback
+  const _propG = 'exploreGlobalApiSecurityMetadata';
+  const _superG = _instance[_propG];
+  _instance[_propG] = (metatype: any) => {
+    updateAuthMetadata(metatype);
+    return _superG(metatype);
   };
 };
 
 //---- Request ----//
+
+/** Fix ref path resolving null object */
+const interceptRefPathResolver = () => {
+  const _instance: any = GetSchemaPath;
+  const _prop = 'getSchemaPath';
+  const _super = _instance[_prop];
+  _instance[_prop] = function (model: any) {
+    return model ? _super(model) : undefined;
+  };
+};
 
 /**
  * Add request path, query object and body schema
@@ -164,37 +182,44 @@ const validateRequest = () => {
     prototype: any,
     method: any,
   ) => {
-    Object.values(_accessor.explore(instance, prototype, method) || {}).forEach(
-      (metadata) => {
-        const sObj = mapToSchemaObject(metadata, method);
-        if (!sObj) return;
-        const { refName, schemaObject } = sObj;
+    const params = Object.values(
+      _accessor.explore(instance, prototype, method) || {},
+    ).reduce((target: any[], metadata) => {
+      const sObj = mapToSchemaObject(metadata, method);
+      if (!sObj) return target;
+      const { refName, schemaObject } = sObj;
 
-        if (isBodyParameter(metadata)) {
-          // add body schema to swagger
-          if (refName) schemas[refName] = schemaObject;
-          else
-            appendMetadata(DECORATORS.API_PARAMETERS, method, {
-              schema: schemaObject,
-              type: schemaObject.type,
-              in: metadata.in,
-              required: true,
-            });
-        } else {
-          // add path and query validation to swagger
-          const required = new Set(schemaObject.required);
-          const params: any[] = Object.entries(
-            schemaObject.properties as { [_: string]: SchemaObject },
-          ).map(([name, { type }]) => ({
-            name,
-            type,
-            in: metadata.in,
-            required: required.has(name),
-          }));
-          appendMetadata(DECORATORS.API_PARAMETERS, method, ...params);
-        }
-      },
-    );
+      const isBody = metadata.in === 'body';
+      if (isBody && refName) {
+        // add body ref to swagger
+        schemas[refName] = schemaObject;
+        return target;
+      } else if (!isBody && schemaObject.type === 'object') {
+        // add header, param, query as key-value
+        const required = new Set(schemaObject.required);
+        const arr = Object.entries(
+          schemaObject.properties as { [_: string]: SchemaObject },
+        ).map(([name, { type }]) => ({
+          name,
+          type,
+          in: metadata.in,
+          required: required.has(name),
+        }));
+        return target.concat(arr);
+      } else {
+        // add non-object request parameter
+        const obj: any = {
+          type: schemaObject.type,
+          schema: schemaObject,
+          in: metadata.in,
+          required: metadata.required,
+        };
+        if (metadata.name) obj.name = metadata.name;
+        target.push(obj);
+        return target;
+      }
+    }, []);
+    appendMetadata(DECORATORS.API_PARAMETERS, method, params);
     return _super(schemas, instance, prototype, method);
   };
 };
@@ -217,13 +242,18 @@ const validateResponse = () => {
   ) => {
     const resp = Reflect.getMetadata(DECORATORS.API_RESPONSE, method) || {};
     const _resp = Object.entries(resp).reduce(
-      (target: any, [key, metadata]) => {
+      (target: any, [key, metadata]: any[]) => {
         const sObj = mapToSchemaObject(metadata, method);
-        if (!sObj) return;
+        if (!sObj) return target;
         const { refName, schemaObject } = sObj;
         // add response schema to swagger
         if (refName) schemas[refName] = schemaObject;
-        else target[key] = { schema: schemaObject };
+        else
+          target[key] = {
+            schema: schemaObject,
+            isArray: metadata.isArray,
+            description: metadata.description,
+          };
         return target;
       },
       resp,
@@ -234,23 +264,34 @@ const validateResponse = () => {
 };
 
 const validateEndpoint = () => {
+  interceptRefPathResolver();
   validateRequest();
   validateResponse();
 
-  const _instance: any = SchemaObjectFactory;
+  const _prototype: any = SchemaObjectFactory.prototype;
   const _prop = 'exploreModelSchema';
   // remove default schema creation, handled manually above
-  _instance.prototype[_prop] = function (type: any) {
-    if (this.isLazyTypeFunc(type)) type = type();
-    return type.name;
+  _prototype[_prop] = (type: any, schemas: any) => {
+    if (_prototype.isLazyTypeFunc(type)) type = type();
+    if (type.name in schemas) return type.name;
+
+    const sObj = mapToSchemaObject({ type }, () => null);
+    if (!sObj) return type.name;
+
+    const { refName, schemaObject } = sObj;
+    if (refName) schemas[refName] = schemaObject;
+    return refName;
   };
 };
 
 //---- Utils function ----//
 
-function appendMetadata(key: string, metatype: any, ...metadata: any[]) {
-  const newMetadata = extendMetadata(metadata, key, metatype);
-  Reflect.defineMetadata(key, newMetadata, metatype);
+function appendMetadata(key: string, metatype: any, metadata: any[]) {
+  const existingMetadata = Reflect.getMetadata(key, metatype);
+  const joinedMetadata = existingMetadata
+    ? existingMetadata.concat(metadata)
+    : metadata;
+  Reflect.defineMetadata(key, joinedMetadata, metatype);
 }
 
 export { setupSwagger };

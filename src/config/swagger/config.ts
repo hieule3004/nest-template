@@ -1,4 +1,8 @@
-import { DocumentBuilder } from '@nestjs/swagger';
+import {
+  DocumentBuilder,
+  SwaggerCustomOptions,
+  SwaggerDocumentOptions,
+} from '@nestjs/swagger';
 import { SchemaObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
 import { zodToOpenAPI } from 'nestjs-zod';
 
@@ -14,15 +18,26 @@ const getDocumentBuilder = () =>
     .setDescription(process.env.npm_package_description || '')
     .setVersion(process.env.npm_package_version || '');
 
-/** Swagger scheme - AuthGuard type map */
-const authSchemes: { [_: string]: string[] } = {
+/** Swagger scheme - AuthGuard type map,
+ * keys should match {@link getDocumentBuilder} auth options */
+const getAuthSchemes = (): Record<string, string[]> => ({
   basic: ['local'],
   bearer: [],
-};
+});
 
-function getAuthSchemes() {
-  return { ...authSchemes };
-}
+/** Document options for {@link import('SwaggerModule').createDocument} */
+const getDocumentOptions = (): SwaggerDocumentOptions => ({
+  deepScanRoutes: true,
+  ignoreGlobalPrefix: true,
+  operationIdFactory: (_controllerKey, methodKey) => methodKey,
+});
+
+/** Custom options for {@link import('SwaggerModule').setup} */
+const getCustomOptions = (): SwaggerCustomOptions => ({
+  swaggerOptions: {
+    docExpansion: 'none',
+  },
+});
 
 /** Create SchemaObject for {@external import('SwaggerObjectFactory').exploreModelSchema}
  * @param metadata: Swagger metadata to be converted to SchemaObject
@@ -48,8 +63,21 @@ function mapToSchemaObject(
   if (schema) return { schemaObject: joiToSwagger(schema).swagger };
    */
 
-  // Cannot convert raw type yet
-  return undefined;
+  // basic raw type
+  let type: any = metadata.type;
+  if (typeof type === 'function') type = type.length ? typeof type() : 'object';
+  if (!type) return undefined;
+
+  const schemaObject: any = { type };
+  if (type === 'object') schemaObject.properties = {};
+  return { refName: type.name, schemaObject };
 }
 
-export { getApiPrefix, getDocumentBuilder, getAuthSchemes, mapToSchemaObject };
+export {
+  getApiPrefix,
+  getCustomOptions,
+  getDocumentBuilder,
+  getDocumentOptions,
+  getAuthSchemes,
+  mapToSchemaObject,
+};

@@ -54,15 +54,6 @@ function mapToSchemaObject(
       schemaObject: zodToOpenAPI(metadata.type.schema),
     };
 
-  /** @example
-  // Joi to Swagger
-  const location = metadata.in === 'path' ? 'param' : metadata.in ?? 'custom';
-  const pipes = Reflect.getMetadata(PIPES_METADATA, method);
-  const joiPipe = pipes?.find((p: any) => p instanceof JoiValidationPipe);
-  const schema = joiPipe?.[`${location}Schema`];
-  if (schema) return { schemaObject: joiToSwagger(schema).swagger };
-   */
-
   // basic raw type
   let type: any = metadata.type;
   if (typeof type === 'function') type = type.length ? typeof type() : 'object';

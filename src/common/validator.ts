@@ -81,9 +81,9 @@ function _addParser(
     if (commentTokenIdx > 0) s = s.substring(0, commentTokenIdx);
     s = s.trim();
     // add new rule
-    if (s.match(/^[A-Za-z0-9-\s]+=[/\s]+/)) a += '\n\n' + s;
+    if (s.match(/^[A-Za-z0-9-\s]+=\/?(\s+|$)/)) a += '\n\n' + s;
     // join multiline rule
-    else if (a[a.length - 1]?.match(/[=/]/)) a += s;
+    else if (a[a.length - 1]?.match(/[=/]/)) a += ' ' + s;
     return a;
   }, '');
 

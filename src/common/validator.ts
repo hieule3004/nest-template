@@ -26,54 +26,42 @@ Object.entries(ValidatorType).forEach(([type, { docId, ruleName }]) =>
 //---- Validator ----//
 /** export validator here */
 
-export const emailValidator = (raw: string): boolean =>
-  !!rfc.email?.parseSafe(raw);
+export const emailValidator = (raw: string): boolean => !!rfc.email?.parseSafe(raw);
 
-export const phoneValidator = (raw: string): boolean =>
-  !!rfc.phone?.parseSafe(raw);
+export const phoneValidator = (raw: string): boolean => !!rfc.phone?.parseSafe(raw);
 
-export const iso8601DateValidator = (raw: string): boolean =>
-  !!rfc.iso8601DateTime?.parseSafe(raw);
+export const iso8601DateValidator = (raw: string): boolean => !!rfc.iso8601DateTime?.parseSafe(raw);
 
 //---- Helper ----//
 
 const ABNF_URL = 'https://author-tools.ietf.org/api/abnf/extract';
 
 /** Helper function to create parser */
-function _registerValidator(
-  type: ValidatorKey,
-  id: number,
-  ruleName: string,
-): void {
+function _registerValidator(type: ValidatorKey, id: number, ruleName: string): void {
   // read offline spec
-  fs.readFile(
-    `${RESOURCE_DIR}/${id}.abnf`,
-    { encoding: 'utf-8' },
-    (_, abnf) => {
-      if (abnf) {
+  fs.readFile(`${RESOURCE_DIR}/${id}.abnf`, { encoding: 'utf-8' }, (_, abnf) => {
+    if (abnf) {
+      try {
         _addParser(type, id, ruleName, abnf);
-        return;
+      } catch (e) {
+        // do nothing
       }
-      // read online spec if failed
-      https
-        .get(`${ABNF_URL}?doc=${id}`, (res) => {
-          let abnf = '';
-          res.on('data', (chunk) => (abnf += chunk.toString()));
-          res.on('end', () => _addParser(type, id, ruleName, abnf));
-        })
-        .on('error', () => undefined)
-        .end();
-    },
-  );
+      return;
+    }
+    // read online spec if failed
+    https
+      .get(`${ABNF_URL}?doc=${id}`, (res) => {
+        let abnf = '';
+        res.on('data', (chunk) => (abnf += chunk.toString()));
+        res.on('end', () => _addParser(type, id, ruleName, abnf));
+      })
+      .on('error', () => undefined)
+      .end();
+  });
 }
 
 /** Add parser to RFC map */
-function _addParser(
-  type: ValidatorKey,
-  id: number,
-  ruleName: string,
-  abnf: string,
-): void {
+function _addParser(type: ValidatorKey, id: number, ruleName: string, abnf: string): void {
   // fix spacing of extracted document to follow ABNF format
   abnf = abnf.split('\n').reduce((a, s) => {
     // remove comments
@@ -105,12 +93,7 @@ function _addParser(
 
   // save to local to be used if needed
   fs.mkdirSync(RESOURCE_DIR, { recursive: true });
-  fs.writeFile(
-    `${RESOURCE_DIR}/${id}.abnf`,
-    abnf,
-    { encoding: 'utf-8' },
-    () => undefined,
-  );
+  fs.writeFile(`${RESOURCE_DIR}/${id}.abnf`, abnf, { encoding: 'utf-8' }, () => undefined);
   // add parser to cache
   rfc[type] = Heket.createParser(rules.getRuleByName(ruleName), rules);
 }

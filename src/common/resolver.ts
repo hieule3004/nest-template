@@ -1,9 +1,13 @@
 import { INestApplication, Type } from '@nestjs/common';
 
-export const getInstance = <M, T>(
-  type: 'imports' | 'controllers' | 'providers',
+/**
+ * Use in place of {@external app.get} with no error
+ * */
+const safeGetInstance = <T>(
   app: INestApplication,
-  module: Type<M>,
   target: Type<T>,
 ): T | undefined =>
-  (app.select(module) as any).contextModule[type]?.get(target.name);
+  (app as any)._instanceLinksHost?.instanceLinks.get(target)?.wrapperRef
+    ?.instance;
+
+export { safeGetInstance };

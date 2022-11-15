@@ -1,12 +1,12 @@
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
-import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 import { LoggingService } from './config/logging/logging.service';
 import { loglevel } from './config/logging/logging.utils';
 import { RequestInterceptor } from './config/http/request.interceptor';
 import { HttpExceptionFilter } from './config/http/exception.filter';
 import { setupSwagger } from './config/swagger/swagger';
+import { getConfigService } from './common/dotenv';
 
 (async function bootstrap() {
   // create application
@@ -20,7 +20,7 @@ import { setupSwagger } from './config/swagger/swagger';
   app.useLogger(logger);
 
   // dotenv
-  const config = app.get(ConfigService);
+  const config = getConfigService(app);
   const apiPrefix = config.get<any>('API_PREFIX');
 
   // global options

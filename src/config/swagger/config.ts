@@ -7,15 +7,16 @@ import {
 } from '@nestjs/swagger';
 import { SchemaObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
 import { zodToOpenAPI } from 'nestjs-zod';
+import { getConfigService } from '../../common/dotenv';
 
 export class SwaggerConfig {
   private readonly env: ConfigService;
 
   constructor(app: INestApplication) {
-    this.env = app.get(ConfigService);
+    this.env = getConfigService(app);
   }
 
-  getApiPrefix = () => this.env.get('API_PREFIX');
+  getApiPrefix = () => this.env.get<any>('API_PREFIX');
 
   /** Document Builder */
   getDocumentBuilder = () =>

@@ -50,23 +50,24 @@ function _registerValidator(
     `${RESOURCE_DIR}/${id}.abnf`,
     { encoding: 'utf-8' },
     (_, abnf) => {
-      if (abnf) {
-        try {
+      try {
+        if (abnf) {
           _addParser(type, id, ruleName, abnf);
-        } catch (e) {
-          // do nothing
+          return;
         }
-        return;
+
+        // read online spec if failed
+        https
+          .get(`${ABNF_URL}?doc=${id}`, (res) => {
+            let abnf = '';
+            res.on('data', (chunk) => (abnf += chunk.toString()));
+            res.on('end', () => _addParser(type, id, ruleName, abnf));
+          })
+          .on('error', () => undefined)
+          .end();
+      } catch (e) {
+        // do nothing
       }
-      // read online spec if failed
-      https
-        .get(`${ABNF_URL}?doc=${id}`, (res) => {
-          let abnf = '';
-          res.on('data', (chunk) => (abnf += chunk.toString()));
-          res.on('end', () => _addParser(type, id, ruleName, abnf));
-        })
-        .on('error', () => undefined)
-        .end();
     },
   );
 }

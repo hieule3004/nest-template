@@ -4,10 +4,16 @@ import { AppService } from './app.service';
 import { LoggingModule } from './config/logging/logging.module';
 import { ConfigModule } from '@nestjs/config';
 import { GlobalValidationProvider } from './config/validation';
-import { UserModule } from './user/user.module';
+import { validate } from './common/validator/dotenv';
 
 @Module({
-  imports: [ConfigModule.forRoot(), LoggingModule, UserModule],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      validate,
+    }),
+    LoggingModule,
+  ],
   controllers: [AppController],
   providers: [GlobalValidationProvider, AppService],
 })

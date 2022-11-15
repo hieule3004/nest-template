@@ -2,7 +2,7 @@ import { Controller, Get, Param, Req } from '@nestjs/common';
 import { AppService } from './app.service';
 import { RuntimeException } from '@nestjs/core/errors/exceptions/runtime.exception';
 import { RfcParam, RfcResponse } from './rfc.dto';
-import { phoneValidator } from './common/validator';
+import { phoneValidator } from './common/validator/rfc';
 
 @Controller()
 export class AppController {

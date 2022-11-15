@@ -1,3 +1,5 @@
+import { INestApplication } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   DocumentBuilder,
   SwaggerCustomOptions,
@@ -6,44 +8,52 @@ import {
 import { SchemaObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
 import { zodToOpenAPI } from 'nestjs-zod';
 
-const getApiPrefix = () => process.env.API_PREFIX || '/api';
+export class SwaggerConfig {
+  private readonly env: ConfigService;
 
-/** Document Builder */
-const getDocumentBuilder = () =>
-  new DocumentBuilder()
-    .addServer(getApiPrefix())
-    .addBasicAuth()
-    .addBearerAuth()
-    .setTitle(process.env.npm_package_name || '')
-    .setDescription(process.env.npm_package_description || '')
-    .setVersion(process.env.npm_package_version || '');
+  constructor(app: INestApplication) {
+    this.env = app.get(ConfigService);
+  }
+
+  getApiPrefix = () => this.env.get('API_PREFIX');
+
+  /** Document Builder */
+  getDocumentBuilder = () =>
+    new DocumentBuilder()
+      .addServer(this.getApiPrefix())
+      .addBasicAuth()
+      .addBearerAuth()
+      .setTitle(this.env.get<any>('npm_package_name'))
+      .setDescription(this.env.get<any>('npm_package_description'))
+      .setVersion(this.env.get<any>('npm_package_version'));
+
+  /** Document options for {@link import('SwaggerModule').createDocument} */
+  getDocumentOptions = (): SwaggerDocumentOptions => ({
+    deepScanRoutes: true,
+    ignoreGlobalPrefix: true,
+    operationIdFactory: (_controllerKey, methodKey) => methodKey,
+  });
+
+  /** Custom options for {@link import('SwaggerModule').setup} */
+  getCustomOptions = (): SwaggerCustomOptions => ({
+    swaggerOptions: {
+      docExpansion: 'none',
+    },
+  });
+}
 
 /** Swagger scheme - AuthGuard type map,
  * keys should match {@link getDocumentBuilder} auth options */
-const getAuthSchemes = (): Record<string, string[]> => ({
+export const getAuthSchemes = (): Record<string, string[]> => ({
   basic: ['local'],
   bearer: [],
-});
-
-/** Document options for {@link import('SwaggerModule').createDocument} */
-const getDocumentOptions = (): SwaggerDocumentOptions => ({
-  deepScanRoutes: true,
-  ignoreGlobalPrefix: true,
-  operationIdFactory: (_controllerKey, methodKey) => methodKey,
-});
-
-/** Custom options for {@link import('SwaggerModule').setup} */
-const getCustomOptions = (): SwaggerCustomOptions => ({
-  swaggerOptions: {
-    docExpansion: 'none',
-  },
 });
 
 /** Create SchemaObject for {@external import('SwaggerObjectFactory').exploreModelSchema}
  * @param metadata: Swagger metadata to be converted to SchemaObject
  * @param method: API endpoint object
  * */
-function mapToSchemaObject(
+export function mapToSchemaObject(
   metadata: any,
   method?: any,
 ): { refName?: string; schemaObject: SchemaObject } | undefined {
@@ -57,18 +67,11 @@ function mapToSchemaObject(
   // basic raw type
   let type: any = metadata.type;
   if (typeof type === 'function') type = type.length ? typeof type() : 'object';
-  if (!type) return undefined;
+  if (type) {
+    const schemaObject: any = { type };
+    if (type === 'object') schemaObject.properties = {};
+    return { refName: type.name, schemaObject };
+  }
 
-  const schemaObject: any = { type };
-  if (type === 'object') schemaObject.properties = {};
-  return { refName: type.name, schemaObject };
+  return undefined;
 }
-
-export {
-  getApiPrefix,
-  getCustomOptions,
-  getDocumentBuilder,
-  getDocumentOptions,
-  getAuthSchemes,
-  mapToSchemaObject,
-};

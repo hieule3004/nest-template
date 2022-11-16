@@ -16,35 +16,42 @@ export class SwaggerConfig {
     this.env = getConfigService(app);
   }
 
-  getApiPrefix = () => this.env.get<any>('API_PREFIX');
+  get apiPrefix() {
+    return this.env.get<any>('API_PREFIX') as string;
+  }
 
   /** Document Builder */
-  getDocumentBuilder = () =>
-    new DocumentBuilder()
-      .addServer(this.getApiPrefix())
+  get documentBuilder() {
+    return new DocumentBuilder()
+      .addServer(this.apiPrefix)
       .addBasicAuth()
       .addBearerAuth()
       .setTitle(this.env.get<any>('npm_package_name'))
       .setDescription(this.env.get<any>('npm_package_description'))
       .setVersion(this.env.get<any>('npm_package_version'));
+  }
 
   /** Document options for {@link import('SwaggerModule').createDocument} */
-  getDocumentOptions = (): SwaggerDocumentOptions => ({
-    deepScanRoutes: true,
-    ignoreGlobalPrefix: true,
-    operationIdFactory: (_controllerKey, methodKey) => methodKey,
-  });
+  get documentOptions(): SwaggerDocumentOptions {
+    return {
+      deepScanRoutes: true,
+      ignoreGlobalPrefix: true,
+      operationIdFactory: (_controllerKey, methodKey) => methodKey,
+    };
+  }
 
   /** Custom options for {@link import('SwaggerModule').setup} */
-  getCustomOptions = (): SwaggerCustomOptions => ({
-    swaggerOptions: {
-      docExpansion: 'none',
-    },
-  });
+  get customOptions(): SwaggerCustomOptions {
+    return {
+      swaggerOptions: {
+        docExpansion: 'none',
+      },
+    };
+  }
 }
 
 /** Swagger scheme - AuthGuard type map,
- * keys should match {@link getDocumentBuilder} auth options */
+ * keys should match {@link SwaggerConfig.documentBuilder} auth options */
 export const getAuthSchemes = (): Record<string, string[]> => ({
   basic: ['local'],
   bearer: [],

@@ -23,15 +23,14 @@ function setupSwagger(app: INestApplication) {
 
   const sc = new SwaggerConfig(app);
 
-  const config = sc.getDocumentBuilder().build();
-  const documentOptions = sc.getDocumentOptions();
-  const document = SwaggerModule.createDocument(app, config, documentOptions);
+  const config = sc.documentBuilder.build();
+  const doc = SwaggerModule.createDocument(app, config, sc.documentOptions);
 
-  const jsonString = JSON.stringify(document, null, 2);
-  fs.writeFile('swagger.json', jsonString, () => null);
+  // for yaml: require('yaml').stringify(doc, {})
+  const spec = JSON.stringify(doc, null, 2);
+  fs.writeFile('swagger.json', spec, () => undefined);
 
-  const customOptions = sc.getCustomOptions();
-  SwaggerModule.setup(sc.getApiPrefix(), app, document, customOptions);
+  SwaggerModule.setup(sc.apiPrefix, app, doc, sc.customOptions);
 }
 
 /**

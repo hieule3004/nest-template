@@ -1,7 +1,6 @@
 import { Injectable, LoggerService } from '@nestjs/common';
 import { createLogger, format, Logger, transports } from 'winston';
-import { colors, levels, loglevel } from './logging.utils';
-import { LoglevelT } from '../../common/dotenv';
+import { colors, levels, loglevel, LoglevelT } from './logging.utils';
 
 const { colorize, combine, errors, printf, timestamp } = format;
 

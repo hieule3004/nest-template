@@ -1,5 +1,8 @@
-import { loglevelSchema, LoglevelT } from '../../common/dotenv';
+import { z } from 'nestjs-zod/z';
+import { dotenvSchema } from '../dotenv';
 
+export const loglevelSchema = dotenvSchema.shape.LOGLEVEL;
+export type LoglevelT = z.infer<typeof loglevelSchema>;
 export const loglevel = () => loglevelSchema.parse(process.env.LOGLEVEL);
 
 export const levels = Object.fromEntries(

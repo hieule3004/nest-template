@@ -4,7 +4,7 @@ import { AppService } from './app.service';
 import { LoggingModule } from './config/logging/logging.module';
 import { ConfigModule } from '@nestjs/config';
 import { GlobalValidationProvider } from './config/validation';
-import { validate } from './common/dotenv';
+import { validate } from './config/dotenv';
 
 @Module({
   imports: [

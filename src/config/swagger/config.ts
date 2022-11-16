@@ -7,7 +7,7 @@ import {
 } from '@nestjs/swagger';
 import { SchemaObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
 import { zodToOpenAPI } from 'nestjs-zod';
-import { getConfigService } from '../../common/dotenv';
+import { getConfigService } from '../dotenv';
 
 export class SwaggerConfig {
   private readonly env: ConfigService;

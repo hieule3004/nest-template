@@ -6,7 +6,7 @@ import { loglevel } from './config/logging/logging.utils';
 import { RequestInterceptor } from './config/http/request.interceptor';
 import { HttpExceptionFilter } from './config/http/exception.filter';
 import { setupSwagger } from './config/swagger/swagger';
-import { getConfigService } from './common/dotenv';
+import { getConfigService } from './config/dotenv';
 
 (async function bootstrap() {
   // create application

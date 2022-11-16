@@ -6,7 +6,7 @@ import {
   SwaggerDocumentOptions,
 } from '@nestjs/swagger';
 import { SchemaObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
-import { zodToOpenAPI } from 'nestjs-zod';
+import { isZodDto, zodToOpenAPI } from '../../common/zod';
 import { getConfigService } from '../dotenv';
 
 export class SwaggerConfig {
@@ -66,7 +66,7 @@ export function mapToSchemaObject(
   method?: any,
 ): { refName?: string; schemaObject: SchemaObject } | undefined {
   // Zod to Swagger
-  if (metadata.type?.isZodDto)
+  if (isZodDto(metadata.type))
     return {
       refName: metadata.type?.name,
       schemaObject: zodToOpenAPI(metadata.type.schema),

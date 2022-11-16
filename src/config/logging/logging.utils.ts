@@ -1,4 +1,4 @@
-import { z } from 'nestjs-zod/z';
+import { z } from 'zod';
 import { dotenvSchema } from '../dotenv';
 
 export const loglevelSchema = dotenvSchema.shape.LOGLEVEL;

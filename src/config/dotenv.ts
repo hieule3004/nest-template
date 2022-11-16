@@ -1,6 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { z } from 'nestjs-zod/z';
+import { z } from 'zod';
 import { safeGetInstance } from '../common/resolver';
 
 /** ---- dotenv validation schema ---- **/

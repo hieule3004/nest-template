@@ -25,6 +25,7 @@ export class AppController {
 
   @Get('rfc/:value')
   getRfc(@Req() req: any, @Param() { value }: RfcParam): RfcResponse {
-    return { result: phoneValidator(String(value)) };
+    // return { result: phoneValidator(String(value)) };
+    return { result: undefined };
   }
 }

@@ -44,6 +44,7 @@ export class LoggingMiddleware implements NestMiddleware {
     const id = res.getHeader(REQUEST_ID) as string;
     const statusCode = res.statusCode;
     const statusMessage = res.statusMessage;
+
     return {
       id,
       statusCode,

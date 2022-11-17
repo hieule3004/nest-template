@@ -1,8 +1,8 @@
 import { ArgumentMetadata, Injectable, PipeTransform } from '@nestjs/common';
+import { ZodSchema } from 'zod';
 import { isZodDto, ZodDto } from './dto';
 import { ZodExceptionCreator } from './exception';
 import { validate } from './validate';
-import { ZodSchema } from 'zod';
 
 interface ZodValidationPipeOptions {
   createValidationException?: ZodExceptionCreator;
@@ -20,16 +20,16 @@ export function createZodValidationPipe({
     private schemaOrDto?: ZodSchema | ZodDto;
 
     public transform(value: unknown, metadata: ArgumentMetadata) {
-      if (this.schemaOrDto) {
+      // validate instance
+      if (this.schemaOrDto)
         return validate(value, this.schemaOrDto, createValidationException);
-      }
 
       const { metatype } = metadata;
 
-      if (!isZodDto(metatype)) {
-        return value;
-      }
+      // ignore unknown dto or schema
+      if (!isZodDto(metatype)) return value;
 
+      // validate zod dto or schema
       return validate(value, metatype.schema, createValidationException);
     }
   }

@@ -3,8 +3,8 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { LoggingModule } from './config/logging/logging.module';
 import { ConfigModule } from '@nestjs/config';
-import { GlobalValidationProvider } from './config/validation';
 import { validate } from './config/dotenv';
+import { GlobalZodProvider } from './common/zod/provider';
 
 @Module({
   imports: [
@@ -15,6 +15,6 @@ import { validate } from './config/dotenv';
     LoggingModule,
   ],
   controllers: [AppController],
-  providers: [GlobalValidationProvider, AppService],
+  providers: [GlobalZodProvider, AppService],
 })
 export class AppModule {}

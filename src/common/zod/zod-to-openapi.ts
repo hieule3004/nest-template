@@ -1,44 +1,31 @@
-import { Type } from '@nestjs/common';
 import { SchemaObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
-import * as deepMerge from 'deepmerge';
-import {
-  ZodArray,
-  ZodBigInt,
-  ZodBoolean,
-  ZodBranded,
-  ZodDefault,
-  ZodDiscriminatedUnion,
-  ZodEnum,
-  ZodIntersection,
-  ZodLiteral,
-  ZodNativeEnum,
-  ZodNullable,
-  ZodNumber,
-  ZodObject,
-  ZodOptional,
-  ZodRecord,
-  ZodSet,
-  ZodString,
-  ZodTransformer,
-  ZodTuple,
-  ZodTypeAny,
-  ZodUnion,
-} from 'zod';
+import * as deepmerge from 'deepmerge';
+import * as zod from 'zod';
+import { ZodFirstPartyTypeKind, ZodTypeAny } from 'zod';
 
-export function is<T extends Type<ZodTypeAny>>(
-  input: ZodTypeAny,
-  factory: T,
-): input is InstanceType<T> {
-  return factory.name === input.constructor.name;
-}
-export function zodToOpenAPI(zodType: ZodTypeAny) {
-  const object: SchemaObject = {};
+// deepmerge options: unique array
+const options: deepmerge.Options = {
+  arrayMerge(target, source, options: any) {
+    return source
+      .reduce((acc: typeof target, element) => {
+        if (!target.includes(element)) acc.push(element);
+        return acc;
+      }, target)
+      .map((element) =>
+        options.cloneUnlessOtherwiseSpecified(element, options),
+      );
+  },
+};
 
-  if (zodType.description) {
-    object.description = zodType.description;
-  }
-
-  if (is(zodType, ZodString)) {
+type ZodTypeKey = keyof typeof ZodFirstPartyTypeKind;
+type ZodTypeInstance<K extends ZodTypeKey> = InstanceType<typeof zod[K]>;
+const mapper: {
+  [K in ZodTypeKey]: (
+    zodType: ZodTypeInstance<K>,
+    object: SchemaObject,
+  ) => void;
+} = {
+  ZodString: (zodType, object) => {
     const { checks } = zodType._def;
     object.type = 'string';
 
@@ -62,14 +49,11 @@ export function zodToOpenAPI(zodType: ZodTypeAny) {
       } else if (check.kind === 'endsWith') {
         object.pattern = `${check.value}$`;
       }
+      // do nothing for `trim`
     }
-  }
+  },
 
-  if (is(zodType, ZodBoolean)) {
-    object.type = 'boolean';
-  }
-
-  if (is(zodType, ZodNumber)) {
+  ZodNumber: (zodType, object) => {
     const { checks } = zodType._def;
     object.type = 'number';
 
@@ -86,50 +70,110 @@ export function zodToOpenAPI(zodType: ZodTypeAny) {
         object.multipleOf = check.value;
       }
     }
-  }
+  },
 
-  if (is(zodType, ZodBigInt)) {
+  ZodNaN: (zodType, object) => {
+    object.type = 'number';
+    object.format = 'double';
+  },
+
+  ZodBigInt: (zodType, object) => {
     object.type = 'integer';
     object.format = 'int64';
-  }
+  },
 
-  if (is(zodType, ZodArray)) {
+  ZodBoolean: (zodType, object) => {
+    object.type = 'boolean';
+  },
+
+  ZodDate: (zodType, object) => undefined,
+
+  ZodUndefined: (zodType, object) => undefined,
+
+  ZodNull: (zodType, object) => undefined,
+
+  ZodAny: (zodType, object) => undefined,
+
+  ZodUnknown: (zodType, object) => undefined,
+
+  ZodNever: (zodType, object) => undefined,
+
+  ZodVoid: (zodType, object) => undefined,
+
+  ZodArray: (zodType, object) => {
     const { minLength, maxLength, type } = zodType._def;
     object.type = 'array';
     if (minLength) object.minItems = minLength.value;
     if (maxLength) object.maxItems = maxLength.value;
     object.items = zodToOpenAPI(type);
-  }
+  },
 
-  if (is(zodType, ZodTuple)) {
+  ZodObject: (zodType, object) => {
+    const { shape } = zodType._def;
+    object.type = 'object';
+
+    object.properties = {};
+    object.required = [];
+
+    for (const [key, schema] of Object.entries<ZodTypeAny>(shape())) {
+      object.properties[key] = zodToOpenAPI(schema);
+      const optionalTypes = ['ZodOptional', 'ZodDefault'];
+      const isOptional = optionalTypes.includes(schema.constructor.name);
+      if (!isOptional) object.required.push(key);
+    }
+
+    if (object.required.length === 0) {
+      delete object.required;
+    }
+  },
+
+  ZodUnion: (zodType, object) => {
+    const { options } = zodType._def;
+    object.oneOf = options.map(zodToOpenAPI);
+  },
+
+  ZodDiscriminatedUnion: (zodType, object) => {
+    const { options } = zodType._def;
+    object.oneOf = [];
+    for (const schema of options.values()) {
+      object.oneOf.push(zodToOpenAPI(schema));
+    }
+  },
+
+  ZodIntersection: (zodType, object) => {
+    const { left, right } = zodType._def;
+    const merged = deepmerge(zodToOpenAPI(left), zodToOpenAPI(right), options);
+    Object.assign(object, merged);
+  },
+
+  ZodTuple: (zodType, object) => {
     const { items } = zodType._def;
     object.type = 'array';
     object.items = { oneOf: items.map(zodToOpenAPI) };
-  }
+  },
 
-  if (is(zodType, ZodSet)) {
+  ZodRecord: (zodType, object) => {
+    const { valueType } = zodType._def;
+    object.type = 'object';
+    object.additionalProperties = zodToOpenAPI(valueType);
+  },
+
+  ZodMap: (zodType, object) => undefined,
+
+  ZodSet: (zodType, object) => {
     const { valueType, minSize, maxSize } = zodType._def;
     object.type = 'array';
     if (minSize) object.minItems = minSize.value;
     if (maxSize) object.maxItems = maxSize.value;
     object.items = zodToOpenAPI(valueType);
     object.uniqueItems = true;
-  }
+  },
 
-  if (is(zodType, ZodUnion)) {
-    const { options } = zodType._def;
-    object.oneOf = options.map(zodToOpenAPI);
-  }
+  ZodFunction: (zodType, object) => undefined,
 
-  if (is(zodType, ZodDiscriminatedUnion)) {
-    const { options } = zodType._def;
-    object.oneOf = [];
-    for (const schema of options.values()) {
-      object.oneOf.push(zodToOpenAPI(schema));
-    }
-  }
+  ZodLazy: (zodType, object) => undefined,
 
-  if (is(zodType, ZodLiteral)) {
+  ZodLiteral: (zodType, object) => {
     const { value } = zodType._def;
 
     if (typeof value === 'string') {
@@ -147,92 +191,54 @@ export function zodToOpenAPI(zodType: ZodTypeAny) {
       // currently there is no way to completely describe boolean literal
       object.type = 'boolean';
     }
-  }
+  },
 
-  if (is(zodType, ZodEnum)) {
+  ZodEnum: (zodType, object) => {
     const { values } = zodType._def;
     object.type = 'string';
     object.enum = values;
-  }
+  },
 
-  if (is(zodType, ZodNativeEnum)) {
+  ZodEffects: (zodType, object) => {
+    const { schema } = zodType._def;
+    Object.assign(object, zodToOpenAPI(schema));
+  },
+
+  ZodNativeEnum: (zodType, object) => {
     const { values } = zodType._def;
     // this only supports enums with string literal values
     object.type = 'string';
     object.enum = Object.values(values);
-  }
+  },
 
-  if (is(zodType, ZodTransformer)) {
-    const { schema } = zodType._def;
-    Object.assign(object, zodToOpenAPI(schema));
-  }
+  ZodOptional: (zodType, object) => {
+    const { innerType } = zodType._def;
+    Object.assign(object, zodToOpenAPI(innerType));
+  },
 
-  if (is(zodType, ZodNullable)) {
+  ZodNullable: (zodType, object) => {
     const { innerType } = zodType._def;
     Object.assign(object, zodToOpenAPI(innerType));
     object.nullable = true;
-  }
+  },
 
-  if (is(zodType, ZodOptional)) {
-    const { innerType } = zodType._def;
-    Object.assign(object, zodToOpenAPI(innerType));
-  }
-
-  if (is(zodType, ZodDefault)) {
+  ZodDefault: (zodType, object) => {
     const { defaultValue, innerType } = zodType._def;
     Object.assign(object, zodToOpenAPI(innerType));
     object.default = defaultValue();
-  }
+  },
 
-  if (is(zodType, ZodObject)) {
-    const { shape } = zodType._def;
-    object.type = 'object';
+  ZodPromise: (zodType, object) => undefined,
 
-    object.properties = {};
-    object.required = [];
-
-    for (const [key, schema] of Object.entries<ZodTypeAny>(shape())) {
-      object.properties[key] = zodToOpenAPI(schema);
-      const optionalTypes = [ZodOptional.name, ZodDefault.name];
-      const isOptional = optionalTypes.includes(schema.constructor.name);
-      if (!isOptional) object.required.push(key);
-    }
-
-    if (object.required.length === 0) {
-      delete object.required;
-    }
-  }
-
-  if (is(zodType, ZodRecord)) {
-    const { valueType } = zodType._def;
-    object.type = 'object';
-    object.additionalProperties = zodToOpenAPI(valueType);
-  }
-
-  if (is(zodType, ZodIntersection)) {
-    const { left, right } = zodType._def;
-    const merged = deepMerge(zodToOpenAPI(left), zodToOpenAPI(right), options);
-    Object.assign(object, merged);
-  }
-
-  if (is(zodType, ZodBranded)) {
+  ZodBranded: (zodType, object) => {
     const { type } = zodType._def;
     Object.assign(object, zodToOpenAPI(type));
-  }
-
-  return object;
-}
-
-// deepmerge options: unique array
-const options: deepMerge.Options = {
-  arrayMerge(target, source, options: any) {
-    return source
-      .reduce((acc: typeof target, element) => {
-        if (!target.includes(element)) acc.push(element);
-        return acc;
-      }, target)
-      .map((element) =>
-        options.cloneUnlessOtherwiseSpecified(element, options),
-      );
   },
+};
+
+export const zodToOpenAPI = (zodType: ZodTypeAny): SchemaObject => {
+  const object: SchemaObject = {};
+  if (zodType.description) object.description = zodType.description;
+  mapper[zodType.constructor.name as ZodTypeKey]?.(zodType as any, object);
+  return object;
 };

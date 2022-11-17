@@ -11,9 +11,7 @@ export function validate(
 
   const result = schema.safeParse(value);
 
-  if (!result.success) {
-    throw createValidationException(result.error);
-  }
+  if (!result.success) throw createValidationException(result.error);
 
   return result.data;
 }

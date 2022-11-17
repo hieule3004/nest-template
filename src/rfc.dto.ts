@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z, ZodRawShape } from 'zod';
 import { createZodDto } from './common/zod';
 
 export const RfcParamSchema = z.object({
@@ -7,7 +7,7 @@ export const RfcParamSchema = z.object({
 
 export class RfcParam extends createZodDto(RfcParamSchema) {}
 
-export const RfcResponseSchema = z.object({
+const intersectionShape = {
   // result: z.boolean(),
   result: z
     .intersection(
@@ -31,6 +31,10 @@ export const RfcResponseSchema = z.object({
       }),
     )
     .optional(),
-});
+};
+const shape: ZodRawShape = {
+  result: z.string(),
+};
+export const RfcResponseSchema = z.object(shape);
 
 export class RfcResponse extends createZodDto(RfcResponseSchema) {}

@@ -21,6 +21,8 @@ export const dotenvSchema = z
 
 export const validate = dotenvSchema.parse;
 
+export type DotenvT = z.infer<typeof dotenvSchema>;
+
 let configService: ConfigService;
 
 export const getConfigService = (app: INestApplication): ConfigService => {

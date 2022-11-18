@@ -2,7 +2,8 @@ import { z, ZodRawShape } from 'zod';
 import { createZodDto } from './common/zod';
 
 export const RfcParamSchema = z.object({
-  value: z.preprocess(Number, z.number({ required_error: 'must be number' })),
+  // value: z.preprocess(Number, z.number({ required_error: 'must be number' })),
+  value: z.string().transform((s) => new Date(s)),
 });
 
 export class RfcParam extends createZodDto(RfcParamSchema) {}

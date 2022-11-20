@@ -1,17 +1,8 @@
 import { Injectable, LoggerService } from '@nestjs/common';
 import { createLogger, format, Logger, transports } from 'winston';
-import { colors, levels, loglevel } from './logging.utils';
+import { colors, levels, loglevel, LoglevelT } from './logging.utils';
 
-const {
-  colorize,
-  combine,
-  errors,
-  prettyPrint,
-  printf,
-  simple,
-  splat,
-  timestamp,
-} = format;
+const { colorize, combine, errors, printf, timestamp } = format;
 
 const customFormat = printf(({ level, message, timestamp }) => {
   let value: string;
@@ -62,7 +53,7 @@ export class LoggingService implements LoggerService {
     this._log('VERBOSE', message);
   }
 
-  private _log(level: keyof typeof levels, message: any): void {
+  private _log(level: LoglevelT, message: any): void {
     if (typeof message === 'undefined') return;
     this.logger.log(level, { message });
   }

@@ -1,14 +1,15 @@
-export const loglevel = () => (process.env.LOGLEVEL ?? 'INFO').toUpperCase();
+import { z } from 'zod';
+import { dotenvSchema } from '../dotenv';
 
-export const levels = {
-  ERROR: 0,
-  WARN: 1,
-  INFO: 2,
-  VERBOSE: 3,
-  DEBUG: 4,
-};
+export const loglevelSchema = dotenvSchema.shape.LOGLEVEL;
+export type LoglevelT = z.infer<typeof loglevelSchema>;
+export const loglevel = () => loglevelSchema.parse(process.env.LOGLEVEL);
 
-export const colors = {
+export const levels = Object.fromEntries(
+  loglevelSchema.options.map((v, i) => [v, i]),
+);
+
+export const colors: Record<LoglevelT, string> = {
   ERROR: 'red',
   WARN: 'yellow',
   INFO: 'green',

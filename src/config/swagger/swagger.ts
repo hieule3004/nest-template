@@ -12,14 +12,7 @@ import { SchemaObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.inte
 import { ParameterMetadataAccessor } from '@nestjs/swagger/dist/services/parameter-metadata-accessor';
 import { SchemaObjectFactory } from '@nestjs/swagger/dist/services/schema-object-factory';
 import * as fs from 'fs';
-import {
-  getApiPrefix,
-  getAuthSchemes,
-  getCustomOptions,
-  getDocumentBuilder,
-  getDocumentOptions,
-  mapToSchemaObject,
-} from './config';
+import { getAuthSchemes, mapToSchemaObject, SwaggerConfig } from './config';
 
 /** Setup swagger */
 function setupSwagger(app: INestApplication) {
@@ -28,15 +21,16 @@ function setupSwagger(app: INestApplication) {
   validateAuth();
   validateEndpoint();
 
-  const config = getDocumentBuilder().build();
-  const documentOptions = getDocumentOptions();
-  const document = SwaggerModule.createDocument(app, config, documentOptions);
+  const sc = new SwaggerConfig(app);
 
-  const jsonString = JSON.stringify(document, null, 2);
-  fs.writeFile('swagger.json', jsonString, () => null);
+  const config = sc.documentBuilder.build();
+  const doc = SwaggerModule.createDocument(app, config, sc.documentOptions);
 
-  const customOptions = getCustomOptions();
-  SwaggerModule.setup(getApiPrefix(), app, document, customOptions);
+  // for yaml: require('yaml').stringify(doc, {})
+  const spec = JSON.stringify(doc, null, 2);
+  fs.writeFile('swagger.json', spec, () => undefined);
+
+  SwaggerModule.setup(sc.apiPrefix, app, doc, sc.customOptions);
 }
 
 /**

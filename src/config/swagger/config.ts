@@ -7,7 +7,7 @@ import {
 } from '@nestjs/swagger';
 import { SchemaObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
 import { isZodDto, zodToOpenAPI } from '../../common/zod';
-import { getConfigService } from '../dotenv';
+import { DotenvDto, getConfigService } from '../dotenv';
 
 export class SwaggerConfig {
   private readonly env: ConfigService;
@@ -34,16 +34,19 @@ export class SwaggerConfig {
   /** Document options for {@link import('SwaggerModule').createDocument} */
   get documentOptions(): SwaggerDocumentOptions {
     return {
+      extraModels: [DotenvDto],
       deepScanRoutes: true,
       ignoreGlobalPrefix: true,
-      operationIdFactory: (_controllerKey, methodKey) => methodKey,
+      // operationIdFactory: (_controllerKey, methodKey) => methodKey,
     };
   }
 
   /** Custom options for {@link import('SwaggerModule').setup} */
   get customOptions(): SwaggerCustomOptions {
     return {
+      // https://github.com/swagger-api/swagger-ui/blob/master/docs/usage/configuration.md
       swaggerOptions: {
+        tryItOutEnabled: true,
         docExpansion: 'none',
       },
     };

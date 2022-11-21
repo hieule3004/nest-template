@@ -2,12 +2,13 @@ import { INestApplication } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { z } from 'zod';
 import { safeGetInstance } from '../common/resolver';
+import { createZodDto } from '../common/zod';
 
 /** ---- dotenv validation schema ---- **/
 export const dotenvSchema = z
   .object({
     ENV: z.enum(['local', 'dev', 'prod', 'stage']),
-    PORT: z.string().transform(Number),
+    PORT: z.preprocess(Number, z.number().positive()),
     API_PREFIX: z
       .string()
       .default('/api')
@@ -22,6 +23,8 @@ export const dotenvSchema = z
 export const validate = dotenvSchema.parse;
 
 export type DotenvT = z.infer<typeof dotenvSchema>;
+
+export class DotenvDto extends createZodDto(dotenvSchema) {}
 
 let configService: ConfigService;
 

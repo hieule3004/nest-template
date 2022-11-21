@@ -7,7 +7,8 @@ import {
 } from '@nestjs/swagger';
 import { SchemaObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
 import { isZodDto, zodToOpenAPI } from '../../common/zod';
-import { getConfigService } from '../dotenv';
+import { currentBranch, repoUrl } from '../../common/git/git-info';
+import { DotenvDto, getConfigService } from '../dotenv';
 
 export class SwaggerConfig {
   private readonly env: ConfigService;
@@ -20,6 +21,10 @@ export class SwaggerConfig {
     return this.env.get<any>('API_PREFIX') as string;
   }
 
+  get license() {
+    return `${repoUrl}/blob/${currentBranch}/LICENSE.md`;
+  }
+
   /** Document Builder */
   get documentBuilder() {
     return new DocumentBuilder()
@@ -28,12 +33,14 @@ export class SwaggerConfig {
       .addBearerAuth()
       .setTitle(this.env.get<any>('npm_package_name'))
       .setDescription(this.env.get<any>('npm_package_description'))
-      .setVersion(this.env.get<any>('npm_package_version'));
+      .setVersion(this.env.get<any>('npm_package_version'))
+      .setLicense(this.env.get<any>('npm_package_license'), this.license);
   }
 
   /** Document options for {@link import('SwaggerModule').createDocument} */
   get documentOptions(): SwaggerDocumentOptions {
     return {
+      extraModels: [DotenvDto],
       deepScanRoutes: true,
       ignoreGlobalPrefix: true,
       operationIdFactory: (_controllerKey, methodKey) => methodKey,
@@ -43,8 +50,10 @@ export class SwaggerConfig {
   /** Custom options for {@link import('SwaggerModule').setup} */
   get customOptions(): SwaggerCustomOptions {
     return {
+      // https://github.com/swagger-api/swagger-ui/blob/master/docs/usage/configuration.md
       swaggerOptions: {
         docExpansion: 'none',
+        tryItOutEnabled: true,
       },
     };
   }

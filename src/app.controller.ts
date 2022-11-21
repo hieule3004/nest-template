@@ -1,6 +1,11 @@
-import { Controller, Get, Param, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  InternalServerErrorException,
+  Param,
+  Req,
+} from '@nestjs/common';
 import { AppService } from './app.service';
-import { RuntimeException } from '@nestjs/core/errors/exceptions/runtime.exception';
 import { RfcParam, RfcResponse } from './rfc.dto';
 import { phoneValidator } from './common/validator/rfc';
 
@@ -15,7 +20,7 @@ export class AppController {
 
   @Get('/error')
   getError() {
-    throw new RuntimeException('hihi');
+    throw new InternalServerErrorException('not implemented');
   }
 
   @Get('/array')

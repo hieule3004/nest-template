@@ -4,7 +4,7 @@ import { LoggingService } from './logging.service';
 import { RequestDto } from '../http/dto/request.dto';
 import { ResponseDto } from '../http/dto/response.dto';
 import { randomUUID } from 'crypto';
-import { REQUEST_ID } from '../http/header.utils';
+import { REQUEST_ID, REQUEST_TIMESTAMP } from '../http/header.utils';
 
 @Injectable()
 export class LoggingMiddleware implements NestMiddleware {
@@ -15,13 +15,13 @@ export class LoggingMiddleware implements NestMiddleware {
     req.headers[REQUEST_ID] = requestId;
     res.setHeader(REQUEST_ID, requestId);
 
+    req.headers[REQUEST_TIMESTAMP] = Date.now().toString();
+
     const requestDto = this.buildRequestLog(req);
-    const start = Date.now();
     this.logger.log(requestDto);
 
     res.on('finish', () => {
-      const responseDto = this.buildResponseLog(res);
-      responseDto.elapsed = Date.now() - start;
+      const responseDto = this.buildResponseLog(req, res);
       this.logger.log(responseDto);
     });
 
@@ -40,15 +40,17 @@ export class LoggingMiddleware implements NestMiddleware {
     };
   }
 
-  private buildResponseLog(res: Response): Partial<ResponseDto> {
+  private buildResponseLog(req: Request, res: Response): Partial<ResponseDto> {
     const id = res.getHeader(REQUEST_ID) as string;
     const statusCode = res.statusCode;
     const statusMessage = res.statusMessage;
+    const elapsed = Date.now() - Number(req.headers[REQUEST_TIMESTAMP]);
 
     return {
       id,
       statusCode,
       statusMessage,
+      elapsed,
     };
   }
 }

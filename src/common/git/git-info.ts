@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 const gitPath = path.resolve(process.cwd(), '.git');
+
 const raw = fs.readFileSync(path.resolve(gitPath, 'config'), {
   encoding: 'utf-8',
 });
@@ -35,6 +36,12 @@ export const currentBranch = Object.entries(gitInfo.branch).find(
 
 export const remote = gitInfo.branch[currentBranch].remote;
 
-export const repo = gitInfo.remote[remote].url;
+export const remoteUrl = gitInfo.remote[remote].url;
 
-export const repoUrl = repo.split('.git')[0];
+export const repoUrl = fs
+  .readFileSync(path.resolve(gitPath, 'FETCH_HEAD'), {
+    encoding: 'utf-8',
+  })
+  .split('\n')
+  .find((l) => !l.includes('not-for-merge'))
+  ?.split(/\s+/)[4] as string;

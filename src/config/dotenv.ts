@@ -32,9 +32,9 @@ export const getConfigService = (app: INestApplication): ConfigService => {
   if (!configService) {
     configService =
       safeGetInstance(app, ConfigService) ??
-      new (ConfigModule.forRoot({ validate }).exports?.find(
+      new ((ConfigModule.forRoot({ validate }).exports?.find(
         (m: any) => m === ConfigService,
-      ) as any)(process.env);
+      ) as any) || ConfigService)(process.env);
   }
   return configService;
 };

@@ -22,7 +22,6 @@ export const gitInfo = raw.split(/\n(?!\t)/).reduce((target, chunk) => {
   else target[type] = inner;
   return target;
 }, {} as any);
-console.log(gitInfo.remote[gitInfo.branch.master.remote].url);
 
 const mergeHead = fs
   .readFileSync(path.resolve(gitPath, 'HEAD'), {

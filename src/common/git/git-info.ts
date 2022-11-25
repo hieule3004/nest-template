@@ -3,9 +3,7 @@ import * as path from 'path';
 
 const gitPath = path.resolve(process.cwd(), '.git');
 
-const raw = fs.readFileSync(path.resolve(gitPath, 'config'), {
-  encoding: 'utf-8',
-});
+const raw = fs.readFileSync(path.resolve(gitPath, 'config'), 'utf-8');
 
 export const gitInfo = raw.split(/\n(?!\t)/).reduce((target, chunk) => {
   const ss = chunk.split('\n\t');
@@ -24,9 +22,7 @@ export const gitInfo = raw.split(/\n(?!\t)/).reduce((target, chunk) => {
 }, {} as any);
 
 const mergeHead = fs
-  .readFileSync(path.resolve(gitPath, 'HEAD'), {
-    encoding: 'utf-8',
-  })
+  .readFileSync(path.resolve(gitPath, 'HEAD'), 'utf-8')
   .split(/\s+/)[1];
 
 export const currentBranch = Object.entries(gitInfo.branch).find(
@@ -38,9 +34,7 @@ export const remote = gitInfo.branch[currentBranch].remote;
 export const remoteUrl = gitInfo.remote[remote].url;
 
 export const repoUrl = fs
-  .readFileSync(path.resolve(gitPath, 'FETCH_HEAD'), {
-    encoding: 'utf-8',
-  })
+  .readFileSync(path.resolve(gitPath, 'FETCH_HEAD'), 'utf-8')
   .split('\n')
   .find((l) => !l.includes('not-for-merge'))
   ?.split(/\s+/)[4] as string;

@@ -46,30 +46,26 @@ function _registerValidator(
   ruleName: string,
 ): void {
   // read offline spec
-  fs.readFile(
-    `${RESOURCE_DIR}/${id}.abnf`,
-    { encoding: 'utf-8' },
-    (_, abnf) => {
-      try {
-        if (abnf) {
-          _addParser(type, id, ruleName, abnf);
-          return;
-        }
-
-        // read online spec if failed
-        https
-          .get(`${ABNF_URL}?doc=${id}`, (res) => {
-            let abnf = '';
-            res.on('data', (chunk) => (abnf += chunk.toString()));
-            res.on('end', () => _addParser(type, id, ruleName, abnf));
-          })
-          .on('error', () => undefined)
-          .end();
-      } catch (e) {
-        // do nothing
+  fs.readFile(`${RESOURCE_DIR}/${id}.abnf`, 'utf-8', (_, abnf) => {
+    try {
+      if (abnf) {
+        _addParser(type, id, ruleName, abnf);
+        return;
       }
-    },
-  );
+
+      // read online spec if failed
+      https
+        .get(`${ABNF_URL}?doc=${id}`, (res) => {
+          let abnf = '';
+          res.on('data', (chunk) => (abnf += chunk.toString()));
+          res.on('end', () => _addParser(type, id, ruleName, abnf));
+        })
+        .on('error', () => undefined)
+        .end();
+    } catch (e) {
+      // do nothing
+    }
+  });
 }
 
 /** Add parser to RFC map */
@@ -110,12 +106,7 @@ function _addParser(
 
   // save to local to be used if needed
   fs.mkdirSync(RESOURCE_DIR, { recursive: true });
-  fs.writeFile(
-    `${RESOURCE_DIR}/${id}.abnf`,
-    abnf,
-    { encoding: 'utf-8' },
-    () => undefined,
-  );
+  fs.writeFile(`${RESOURCE_DIR}/${id}.abnf`, abnf, 'utf-8', () => undefined);
   // add parser to cache
   rfc[type] = Heket.createParser(rules.getRuleByName(ruleName), rules);
 }

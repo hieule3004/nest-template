@@ -21,7 +21,7 @@ function setupSwagger(app: INestApplication) {
   validateAuth();
   validateEndpoint();
 
-  const sc = new SwaggerConfig(app);
+  const sc = new SwaggerConfig();
 
   const config = sc.documentBuilder.build();
   const doc = SwaggerModule.createDocument(app, config, sc.documentOptions);

@@ -6,7 +6,7 @@ import { loglevel } from './config/logging/logging.utils';
 import { RequestInterceptor } from './config/http/request.interceptor';
 import { HttpExceptionFilter } from './config/http/exception.filter';
 import { setupSwagger } from './config/swagger/swagger';
-import { getConfigService } from './config/dotenv';
+import { getEnv } from './config/dotenv';
 
 (async function bootstrap() {
   // create application
@@ -20,8 +20,7 @@ import { getConfigService } from './config/dotenv';
   app.useLogger(logger);
 
   // dotenv
-  const config = getConfigService(app);
-  const apiPrefix = config.get<any>('API_PREFIX');
+  const apiPrefix = getEnv('API_PREFIX');
 
   // global options
   app.setGlobalPrefix(apiPrefix);
@@ -32,8 +31,8 @@ import { getConfigService } from './config/dotenv';
   setupSwagger(app);
 
   // start app, resolve host to IPv4
-  await app.listen(config.get<any>('PORT'), '0.0.0.0');
+  await app.listen(getEnv('PORT'), '0.0.0.0');
 
   const url = new URL(apiPrefix, await app.getUrl());
-  logger.log({ url, env: config.get('ENV'), loglevel: loglevel() });
+  logger.log({ url, env: getEnv('ENV'), loglevel: loglevel() });
 })();

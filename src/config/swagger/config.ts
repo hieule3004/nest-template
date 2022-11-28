@@ -1,5 +1,3 @@
-import { INestApplication } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import {
   DocumentBuilder,
   SwaggerCustomOptions,
@@ -8,20 +6,14 @@ import {
 import { SchemaObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
 import { isZodDto, zodToOpenAPI } from '../../common/zod';
 import { currentBranch, repoUrl } from '../../common/git/git-info';
-import { DotenvDto, getConfigService } from '../dotenv';
+import { DotenvDto, getEnv } from '../dotenv';
 
 export class SwaggerConfig {
-  private readonly env: ConfigService;
-
-  constructor(app: INestApplication) {
-    this.env = getConfigService(app);
-  }
-
   get apiPrefix() {
-    return this.env.get<any>('API_PREFIX') as string;
+    return getEnv('API_PREFIX');
   }
 
-  get license() {
+  private get license() {
     return `${repoUrl}/blob/${currentBranch}/LICENSE.md`;
   }
 
@@ -31,10 +23,10 @@ export class SwaggerConfig {
       .addServer(this.apiPrefix)
       .addBasicAuth()
       .addBearerAuth()
-      .setTitle(this.env.get<any>('npm_package_name'))
-      .setDescription(this.env.get<any>('npm_package_description'))
-      .setVersion(this.env.get<any>('npm_package_version'))
-      .setLicense(this.env.get<any>('npm_package_license'), this.license);
+      .setTitle(getEnv('npm_package_name'))
+      .setDescription(getEnv('npm_package_description'))
+      .setVersion(getEnv('npm_package_version'))
+      .setLicense(getEnv('npm_package_license'), this.license);
   }
 
   /** Document options for {@link import('SwaggerModule').createDocument} */

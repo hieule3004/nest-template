@@ -4,8 +4,6 @@
     "target": "ESNext",
     "outDir": "./dist",
     "baseUrl": "./",
-    "esModuleInterop": true,
-    "allowJs": true,
     "incremental": true,
     "sourceMap": true,
     "declaration": true,

@@ -1,5 +1,5 @@
 import { SchemaObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
-import deepmerge from 'deepmerge';
+import * as deepmerge from 'deepmerge';
 import * as zod from 'zod';
 import { ZodFirstPartyTypeKind, ZodTypeAny } from 'zod';
 

@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { AppService } from './app.service';
 import { RfcParam, RfcResponse } from './rfc.dto';
-import { emailValidator, phoneValidator } from './common/validator/rfc';
+import { emailValidator } from './common/validator/rfc';
 
 @Controller()
 export class AppController {

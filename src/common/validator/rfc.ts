@@ -13,7 +13,6 @@ const ValidatorType = {
   email: { docId: 5322, ruleName: 'addr-spec' },
   phone: { docId: 3966, ruleName: 'telephone-subscriber' },
   iso8601DateTime: { docId: 3339, ruleName: 'date-time' },
-  url: { docId: 3986, ruleName: 'absolute-URI' },
 };
 
 type ValidatorKey = keyof typeof ValidatorType;
@@ -30,8 +29,6 @@ Object.entries(ValidatorType).forEach(([type, { docId, ruleName }]) =>
 export const emailValidator = (raw: string) => rfc.email?.parseSafe(raw);
 
 export const phoneValidator = (raw: string) => rfc.phone?.parseSafe(raw);
-
-export const urlValidator = (raw: string) => rfc.url?.parseSafe(raw);
 
 export const iso8601DateValidator = (raw: string) =>
   rfc.iso8601DateTime?.parseSafe(raw);

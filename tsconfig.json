@@ -4,6 +4,8 @@
     "target": "ESNext",
     "outDir": "./dist",
     "baseUrl": "./",
+    "esModuleInterop": true,
+    "allowJs": true,
     "incremental": true,
     "sourceMap": true,
     "declaration": true,
@@ -14,7 +16,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
-    "strict": true,
+    "strict": true
   },
   "include": ["src"],
 }

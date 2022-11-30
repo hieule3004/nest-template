@@ -34,13 +34,16 @@ const featureSchema = z
   );
 
 /** ---- dotenv validation schema ---- **/
-export const dotenvSchema = generalSchema.and(npmSchema).and(featureSchema);
+export const dotenvSchema = generalSchema.and(npmSchema);
 
 //---- Utils ----//
 
 export const validate = (input: unknown) => {
   const result = dotenvSchema.safeParse(input);
-  if (result.success) return result;
+  if (result.success) {
+    _env = result.data;
+    return result;
+  }
   throw result.error;
 };
 
@@ -59,5 +62,9 @@ export const getConfigService = (): ConfigService => {
   return configService;
 };
 
-export const getEnv = <K extends keyof DotenvT>(key: K) =>
-  getConfigService().get(key) as DotenvT[K];
+let _env: DotenvT;
+
+export const getEnv = <K extends keyof DotenvT>(key: K) => {
+  if (!_env) getConfigService();
+  return _env[key];
+};

@@ -13,6 +13,7 @@ const ValidatorType = {
   email: { docId: 5322, ruleName: 'addr-spec' },
   phone: { docId: 3966, ruleName: 'telephone-subscriber' },
   iso8601DateTime: { docId: 3339, ruleName: 'date-time' },
+  url: { docId: 3986, ruleName: 'absolute-URI' },
 };
 
 type ValidatorKey = keyof typeof ValidatorType;
@@ -26,14 +27,14 @@ Object.entries(ValidatorType).forEach(([type, { docId, ruleName }]) =>
 //---- Validator ----//
 /** export validator here */
 
-export const emailValidator = (raw: string): boolean =>
-  !!rfc.email?.parseSafe(raw);
+export const emailValidator = (raw: string) => rfc.email?.parseSafe(raw);
 
-export const phoneValidator = (raw: string): boolean =>
-  !!rfc.phone?.parseSafe(raw);
+export const phoneValidator = (raw: string) => rfc.phone?.parseSafe(raw);
 
-export const iso8601DateValidator = (raw: string): boolean =>
-  !!rfc.iso8601DateTime?.parseSafe(raw);
+export const urlValidator = (raw: string) => rfc.url?.parseSafe(raw);
+
+export const iso8601DateValidator = (raw: string) =>
+  rfc.iso8601DateTime?.parseSafe(raw);
 
 //---- Helper ----//
 
@@ -84,7 +85,7 @@ function _addParser(
     // add new rule
     if (s.match(/^[A-Za-z0-9-\s]+=\/?(\s+|$)/)) a += '\n\n' + s;
     // join multiline rule
-    else if (a[a.length - 1]?.match(/[=/]/)) a += ' ' + s;
+    else if (a[a.length - 1]?.match(/[=/]/) || s[0] === '/') a += ' ' + s;
     return a;
   }, '');
 
@@ -95,9 +96,9 @@ function _addParser(
       rules = Heket.createRuleList(abnf);
       break;
     } catch (e: any) {
-      if (!(e instanceof RuleNotFoundError)) throw e;
-      // remove uncompilable rule, detect loop
-      const re = new RegExp(`([^\n]*${e.rule_name})`, 'g');
+      let exp = _computeRemovedStringSignature(e);
+      exp = exp.replace(/([$&])/g, '\\$1');
+      const re = RegExp(`([^\n]*${exp})`, 'g');
       const newAbnf = abnf.replace(re, ';$1');
       if (abnf === newAbnf) throw e;
       abnf = newAbnf;
@@ -109,4 +110,11 @@ function _addParser(
   fs.writeFile(`${RESOURCE_DIR}/${id}.abnf`, abnf, 'utf-8', () => undefined);
   // add parser to cache
   rfc[type] = Heket.createParser(rules.getRuleByName(ruleName), rules);
+}
+
+function _computeRemovedStringSignature(e: any): string {
+  if (e instanceof RuleNotFoundError) return e.getRuleName();
+  const match = (e.message as string).match(/^Invalid rule name: (\S+)/);
+  if (match) return match[1];
+  throw e;
 }

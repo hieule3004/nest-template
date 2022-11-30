@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { AppService } from './app.service';
 import { RfcParam, RfcResponse } from './rfc.dto';
-import { phoneValidator } from './common/validator/rfc';
+import { emailValidator, phoneValidator } from './common/validator/rfc';
 
 @Controller()
 export class AppController {
@@ -30,6 +30,8 @@ export class AppController {
 
   @Get('rfc/:value')
   getRfc(@Req() req: any, @Param() { value }: RfcParam): RfcResponse {
-    return { result: phoneValidator(String(value)) };
+    const match = emailValidator(String(value));
+    const result = !!match;
+    return { result };
   }
 }

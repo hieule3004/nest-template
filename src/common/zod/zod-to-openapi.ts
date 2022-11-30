@@ -1,20 +1,13 @@
 import { SchemaObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
-import * as deepmerge from 'deepmerge';
+import deepmerge from 'deepmerge';
 import * as zod from 'zod';
 import { ZodFirstPartyTypeKind, ZodTypeAny } from 'zod';
 
-// deepmerge options: unique array
-const options: deepmerge.Options = {
-  arrayMerge(target, source, options: any) {
-    return source
-      .reduce((acc: typeof target, element) => {
-        if (!target.includes(element)) acc.push(element);
-        return acc;
-      }, target)
-      .map((element) =>
-        options.cloneUnlessOtherwiseSpecified(element, options),
-      );
-  },
+export const zodToOpenAPI = (zodType: ZodTypeAny): SchemaObject => {
+  const object: SchemaObject = {};
+  if (zodType.description) object.description = zodType.description;
+  mapper[zodType.constructor.name as ZodTypeKey]?.(zodType as any, object);
+  return object;
 };
 
 type ZodTypeKey = keyof typeof ZodFirstPartyTypeKind;
@@ -86,19 +79,25 @@ const mapper: {
     object.type = 'boolean';
   },
 
-  ZodDate: (zodType, object) => undefined,
+  ZodDate: (zodType, object) => {
+    object.type = 'string';
+    object.format = 'date-time';
+  },
 
-  ZodUndefined: (zodType, object) => undefined,
+  ZodUndefined: () => undefined,
 
-  ZodNull: (zodType, object) => undefined,
+  ZodNull: () => undefined,
 
-  ZodAny: (zodType, object) => undefined,
+  ZodAny: (zodType, object) => {
+    object.type = 'object';
+    object.properties = {};
+  },
 
-  ZodUnknown: (zodType, object) => undefined,
+  ZodUnknown: () => undefined,
 
-  ZodNever: (zodType, object) => undefined,
+  ZodNever: () => undefined,
 
-  ZodVoid: (zodType, object) => undefined,
+  ZodVoid: () => undefined,
 
   ZodArray: (zodType, object) => {
     const { minLength, maxLength, type } = zodType._def;
@@ -142,7 +141,11 @@ const mapper: {
 
   ZodIntersection: (zodType, object) => {
     const { left, right } = zodType._def;
-    const merged = deepmerge(zodToOpenAPI(left), zodToOpenAPI(right), options);
+    const merged = deepmerge(
+      zodToOpenAPI(left),
+      zodToOpenAPI(right),
+      deepMergeOptions,
+    );
     Object.assign(object, merged);
   },
 
@@ -158,7 +161,11 @@ const mapper: {
     object.additionalProperties = zodToOpenAPI(valueType);
   },
 
-  ZodMap: (zodType, object) => undefined,
+  ZodMap: (zodType, object) => {
+    const { valueType } = zodType._def;
+    object.type = 'object';
+    object.additionalProperties = zodToOpenAPI(valueType);
+  },
 
   ZodSet: (zodType, object) => {
     const { valueType, minSize, maxSize } = zodType._def;
@@ -169,9 +176,12 @@ const mapper: {
     object.uniqueItems = true;
   },
 
-  ZodFunction: (zodType, object) => undefined,
+  ZodFunction: () => undefined,
 
-  ZodLazy: (zodType, object) => undefined,
+  ZodLazy: (zodType, object) => {
+    const { getter } = zodType._def;
+    Object.assign(object, zodToOpenAPI(getter()));
+  },
 
   ZodLiteral: (zodType, object) => {
     const { value } = zodType._def;
@@ -228,7 +238,10 @@ const mapper: {
     object.default = defaultValue();
   },
 
-  ZodPromise: (zodType, object) => undefined,
+  ZodPromise: (zodType, object) => {
+    const { type } = zodType._def;
+    Object.assign(object, zodToOpenAPI(type));
+  },
 
   ZodBranded: (zodType, object) => {
     const { type } = zodType._def;
@@ -236,9 +249,16 @@ const mapper: {
   },
 };
 
-export const zodToOpenAPI = (zodType: ZodTypeAny): SchemaObject => {
-  const object: SchemaObject = {};
-  if (zodType.description) object.description = zodType.description;
-  mapper[zodType.constructor.name as ZodTypeKey]?.(zodType as any, object);
-  return object;
+// deepmerge options: unique array
+const deepMergeOptions: deepmerge.Options = {
+  arrayMerge(target, source, options: any) {
+    return source
+      .reduce((acc: typeof target, element) => {
+        if (!target.includes(element)) acc.push(element);
+        return acc;
+      }, target)
+      .map((element) =>
+        options.cloneUnlessOtherwiseSpecified(element, options),
+      );
+  },
 };

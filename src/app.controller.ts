@@ -2,12 +2,13 @@ import {
   Controller,
   Get,
   InternalServerErrorException,
-  Param,
+  Post,
+  Query,
   Req,
 } from '@nestjs/common';
 import { AppService } from './app.service';
-import { RfcParam, RfcResponse } from './rfc.dto';
-import { emailValidator } from './common/validator/rfc';
+import { RfcParam } from './rfc.dto';
+import { rfcValidator } from './common/validator/rfc';
 
 @Controller()
 export class AppController {
@@ -28,10 +29,11 @@ export class AppController {
     return [{ a: 1 }, { b: 2 }, { c: 3 }];
   }
 
-  @Get('rfc/:value')
-  getRfc(@Req() req: any, @Param() { value }: RfcParam): RfcResponse {
-    const match = emailValidator(String(value));
-    const result = !!match;
-    return { result };
+  @Post('rfc')
+  async getRfc(
+    @Req() req: any,
+    @Query() { parser, value }: RfcParam,
+  ): Promise<any> {
+    return { result: rfcValidator(parser, value) };
   }
 }

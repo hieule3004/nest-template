@@ -9,29 +9,27 @@ const { RuleNotFoundError } = Heket as any;
 const RESOURCE_DIR = 'dist/resources';
 
 /** add validator here with rfc document id and rule to parse */
-const ValidatorType = {
+export const ValidatorType = {
   email: { docId: 5322, ruleName: 'addr-spec' },
   phone: { docId: 3966, ruleName: 'telephone-subscriber' },
-  iso8601DateTime: { docId: 3339, ruleName: 'date-time' },
+  isoDateTime: { docId: 3339, ruleName: 'date-time' },
 };
 
 type ValidatorKey = keyof typeof ValidatorType;
 const rfc: Partial<Record<ValidatorKey, Heket.Parser>> = {};
 
-/** read rfc specification */
-Object.entries(ValidatorType).forEach(([type, { docId, ruleName }]) =>
-  _registerValidator(type as ValidatorKey, docId, ruleName),
-);
+{
+  /** read rfc specification */
+  Object.entries(ValidatorType).forEach(([type, { docId, ruleName }]) =>
+    _registerValidator(type as ValidatorKey, docId, ruleName),
+  );
+}
 
 //---- Validator ----//
 /** export validator here */
 
-export const emailValidator = (raw: string) => rfc.email?.parseSafe(raw);
-
-export const phoneValidator = (raw: string) => rfc.phone?.parseSafe(raw);
-
-export const iso8601DateValidator = (raw: string) =>
-  rfc.iso8601DateTime?.parseSafe(raw);
+export const rfcValidator = (name: ValidatorKey, raw: string) =>
+  rfc[name]?.parse(raw);
 
 //---- Helper ----//
 

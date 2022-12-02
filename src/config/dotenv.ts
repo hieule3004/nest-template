@@ -5,11 +5,16 @@ import { GlobalConfigModule } from '../common/config';
 
 const generalSchema = z.object({
   ENV: z.enum(['local', 'dev', 'prod', 'stage']),
+
   PORT: z.preprocess(Number, z.number().positive()),
+
   API_PREFIX: z
     .string()
     .default('/api')
     .transform((s) => (s[0] === '/' ? s : `/${s}`)),
+
+  API_TIMEOUT: z.preprocess(Number, z.number().positive()).default(5),
+
   LOGLEVEL: z.enum(['ERROR', 'WARN', 'INFO', 'VERBOSE', 'DEBUG']),
 });
 
@@ -19,19 +24,6 @@ const npmSchema = z.object({
   npm_package_version: z.string(),
   npm_package_license: z.string(),
 });
-
-const featureSchema = z
-  .object({
-    FEATURE_ON: z.enum(['true', 'false']).default('false'),
-    FEATURE_KEY: z.string().min(1),
-    FEATURE_VALUE: z.string().min(1),
-  })
-  .partial()
-  .refine(
-    ({ FEATURE_ON, FEATURE_KEY, FEATURE_VALUE }) =>
-      !FEATURE_ON || (FEATURE_KEY && FEATURE_VALUE),
-    { message: 'feature on requires its env vars' },
-  );
 
 /** ---- dotenv validation schema ---- **/
 export const dotenvSchema = generalSchema.and(npmSchema);

@@ -1,7 +1,9 @@
 import { z } from 'zod';
 import { createZodDto } from './common/zod';
+import { ValidatorType } from './common/validator/rfc';
 
 export const RfcParamSchema = z.object({
+  parser: z.enum(Object.keys(ValidatorType) as any),
   value: z.string(),
 });
 

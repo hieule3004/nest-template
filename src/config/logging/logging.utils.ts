@@ -1,8 +1,8 @@
-import { DotenvT, getEnv } from '../dotenv';
+import { DotenvT, fromEnv } from '../dotenv';
 
 export type LoglevelT = DotenvT['LOGLEVEL'];
 
-export const loglevel = () => getEnv('LOGLEVEL');
+export const loglevel = () => fromEnv('LOGLEVEL');
 
 export const levels: Record<LoglevelT, number> = {
   ERROR: 0,

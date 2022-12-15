@@ -6,11 +6,11 @@ import {
 import { SchemaObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
 import { isZodDto, zodToOpenAPI } from '../../common/zod';
 import { currentBranch, repoUrl } from '../../common/git/git-info';
-import { DotenvDto, getEnv } from '../dotenv';
+import { DotenvDto, fromEnv } from '../dotenv';
 
 export class SwaggerConfig {
   get apiPrefix() {
-    return getEnv('API_PREFIX');
+    return fromEnv('API_PREFIX');
   }
 
   private get license() {
@@ -23,10 +23,10 @@ export class SwaggerConfig {
       .addServer(this.apiPrefix)
       .addBasicAuth()
       .addBearerAuth()
-      .setTitle(getEnv('npm_package_name'))
-      .setDescription(getEnv('npm_package_description'))
-      .setVersion(getEnv('npm_package_version'))
-      .setLicense(getEnv('npm_package_license'), this.license);
+      .setTitle(fromEnv('npm_package_name'))
+      .setDescription(fromEnv('npm_package_description'))
+      .setVersion(fromEnv('npm_package_version'))
+      .setLicense(fromEnv('npm_package_license'), this.license);
   }
 
   /** Document options for {@link import('SwaggerModule').createDocument} */

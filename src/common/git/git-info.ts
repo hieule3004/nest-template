@@ -25,13 +25,14 @@ const mergeHead = fs
   .readFileSync(path.resolve(gitPath, 'HEAD'), 'utf-8')
   .split(/\s+/)[1];
 
-export const currentBranch = Object.entries(gitInfo.branch).find(
-  ([, { merge }]: any[]) => merge === mergeHead,
-)?.[0] as string;
+export const currentBranch =
+  Object.entries(gitInfo.branch).find(
+    ([, { merge }]: any[]) => merge === mergeHead,
+  )?.[0] ?? mergeHead.substring(mergeHead.lastIndexOf('/') + 1);
 
-export const remote = gitInfo.branch[currentBranch].remote;
+export const remote = gitInfo.branch[currentBranch]?.remote;
 
-export const remoteUrl = gitInfo.remote[remote].url;
+export const remoteUrl = gitInfo.remote[remote]?.url;
 
 export const repoUrl = fs
   .readFileSync(path.resolve(gitPath, 'FETCH_HEAD'), 'utf-8')

@@ -56,7 +56,7 @@ export const getConfigService = (): ConfigService => {
 
 let _env: DotenvT;
 
-export const getEnv = <K extends keyof DotenvT>(key: K) => {
+export const fromEnv = <K extends keyof DotenvT>(key: K) => {
   if (!_env) getConfigService();
   return _env[key];
 };

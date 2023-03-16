@@ -1,5 +1,6 @@
 import * as mongoose from 'mongoose';
 import { z } from 'zod';
+import { TypedMongoose } from './types';
 
 type Schema<T> = {
   instance:
@@ -14,6 +15,9 @@ type Schema<T> = {
   paths: Record<string, Schema<any>>;
   subpaths: Record<string, Schema<any>>;
   nested: Record<string, boolean>;
+  enumValues?: string[];
+  isRequired?: boolean;
+  defaultValue?: any;
   $isMongooseArray?: true;
 } & (
   | {
@@ -25,19 +29,22 @@ type Schema<T> = {
     }
 );
 
-function _m2zBase<T>({ instance: type, options }: Schema<T>) {
+function _m2zBase<T>(schema: Schema<T>) {
+  const {
+    instance: type,
+    enumValues,
+    isRequired,
+    defaultValue,
+  } = schema as any;
   let zodSchema;
 
   // simple handle complex types
   if (type === 'Mixed') zodSchema = z.any();
-  else if (type === 'ObjectID')
-    zodSchema = z.preprocess(
-      (o: any) => o.toString(),
-      z.string().regex(/^[0-9a-fA-F]{24}$/),
-    );
+  else if (type === 'ObjectID') zodSchema = z.any();
+  // zodSchema = z.preprocess((o: any) => o.toString(), z.string().regex(/^[0-9a-fA-F]{24}$/));
   // handle primitive types
   else if (type === 'String')
-    if (options.enum) zodSchema = z.enum(options.enum as any);
+    if (enumValues) zodSchema = z.enum(enumValues);
     else zodSchema = z.string();
   else if (type === 'Number') zodSchema = z.number();
   else if (type === 'Boolean') zodSchema = z.boolean();
@@ -46,18 +53,20 @@ function _m2zBase<T>({ instance: type, options }: Schema<T>) {
   else throw new Error(`Type out of scope: ${type}`);
 
   // handle required value
-  if (!options.required) zodSchema = zodSchema.optional();
+  if (!isRequired) zodSchema = zodSchema.optional();
 
   // handle default value
-  if (Object.keys(options).includes('default')) {
-    if (options.default === null) zodSchema = zodSchema.nullable();
-    zodSchema = (zodSchema as z.ZodTypeAny).default(options.default);
+  if (defaultValue !== undefined) {
+    if (defaultValue === null) zodSchema = zodSchema.nullable();
+    zodSchema = (zodSchema as z.ZodTypeAny).default(defaultValue);
   }
 
   return zodSchema;
 }
 
-function _m2zRec<T>({ paths, subpaths, nested }: Schema<T>) {
+function _m2zRec<T>(schema: Schema<T>) {
+  const { paths, subpaths, nested } = schema;
+
   const properties = Object.entries(paths).reduce((properties, [path, obj]) => {
     // paths are dot-concatenated string
     const ps = path.split('.');
@@ -107,7 +116,10 @@ function _m2zRec<T>({ paths, subpaths, nested }: Schema<T>) {
   return z.object(shape);
 }
 
-const mongooseToZod = <T>(schema: mongoose.Schema<any, any, T>) =>
-  _m2zRec(schema as unknown as Schema<Required<T>>);
+/** Convert mongoose schema to zod validator */
+const mongooseToZod = <T>(schema: mongoose.Schema<T>) =>
+  _m2zRec(schema as unknown as Schema<T>) as unknown as z.ZodType<
+    TypedMongoose.infer<T>
+  >;
 
 export { mongooseToZod };

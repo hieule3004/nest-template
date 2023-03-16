@@ -1,0 +1,941 @@
+{
+  "rulelist": {
+    "type": "alternation",
+    "value": [
+      {
+        "type": "rule",
+        "value": "rule"
+      },
+      {
+        "type": "concatenation",
+        "value": [
+          {
+            "type": "rule",
+            "value": "c-wsp",
+            "repeat": {
+              "min": 0
+            }
+          },
+          {
+            "type": "rule",
+            "value": "c-nl"
+          }
+        ],
+        "grouping": "group"
+      }
+    ],
+    "grouping": "group",
+    "repeat": {
+      "min": 1
+    }
+  },
+  "rule": {
+    "type": "concatenation",
+    "value": [
+      {
+        "type": "rule",
+        "value": "rulename"
+      },
+      {
+        "type": "rule",
+        "value": "defined-as"
+      },
+      {
+        "type": "rule",
+        "value": "elements"
+      },
+      {
+        "type": "rule",
+        "value": "c-nl"
+      }
+    ]
+  },
+  "rulename": {
+    "type": "concatenation",
+    "value": [
+      {
+        "type": "rule",
+        "value": "ALPHA"
+      },
+      {
+        "type": "alternation",
+        "value": [
+          {
+            "type": "rule",
+            "value": "ALPHA"
+          },
+          {
+            "type": "rule",
+            "value": "DIGIT"
+          },
+          {
+            "type": "char",
+            "value": "-",
+            "caseSensitive": false
+          }
+        ],
+        "grouping": "group",
+        "repeat": {
+          "min": 0
+        }
+      }
+    ]
+  },
+  "defined-as": {
+    "type": "concatenation",
+    "value": [
+      {
+        "type": "rule",
+        "value": "c-wsp",
+        "repeat": {
+          "min": 0
+        }
+      },
+      {
+        "type": "alternation",
+        "value": [
+          {
+            "type": "char",
+            "value": "=",
+            "caseSensitive": false
+          },
+          {
+            "type": "char",
+            "value": "=/",
+            "caseSensitive": false
+          }
+        ],
+        "grouping": "group"
+      },
+      {
+        "type": "rule",
+        "value": "c-wsp",
+        "repeat": {
+          "min": 0
+        }
+      }
+    ]
+  },
+  "elements": {
+    "type": "concatenation",
+    "value": [
+      {
+        "type": "rule",
+        "value": "alternation"
+      },
+      {
+        "type": "rule",
+        "value": "c-wsp",
+        "repeat": {
+          "min": 0
+        }
+      }
+    ]
+  },
+  "c-wsp": {
+    "type": "alternation",
+    "value": [
+      {
+        "type": "rule",
+        "value": "WSP"
+      },
+      {
+        "type": "concatenation",
+        "value": [
+          {
+            "type": "rule",
+            "value": "c-nl"
+          },
+          {
+            "type": "rule",
+            "value": "WSP"
+          }
+        ],
+        "grouping": "group"
+      }
+    ]
+  },
+  "c-nl": {
+    "type": "alternation",
+    "value": [
+      {
+        "type": "rule",
+        "value": "comment"
+      },
+      {
+        "type": "rule",
+        "value": "CRLF"
+      }
+    ]
+  },
+  "comment": {
+    "type": "concatenation",
+    "value": [
+      {
+        "type": "char",
+        "value": ";",
+        "caseSensitive": false
+      },
+      {
+        "type": "alternation",
+        "value": [
+          {
+            "type": "rule",
+            "value": "WSP"
+          },
+          {
+            "type": "rule",
+            "value": "VCHAR"
+          }
+        ],
+        "grouping": "group",
+        "repeat": {
+          "min": 0
+        }
+      },
+      {
+        "type": "rule",
+        "value": "CRLF"
+      }
+    ]
+  },
+  "alternation": {
+    "type": "concatenation",
+    "value": [
+      {
+        "type": "rule",
+        "value": "concatenation"
+      },
+      {
+        "type": "concatenation",
+        "value": [
+          {
+            "type": "rule",
+            "value": "c-wsp",
+            "repeat": {
+              "min": 0
+            }
+          },
+          {
+            "type": "char",
+            "value": "/",
+            "caseSensitive": false
+          },
+          {
+            "type": "rule",
+            "value": "c-wsp",
+            "repeat": {
+              "min": 0
+            }
+          },
+          {
+            "type": "rule",
+            "value": "concatenation"
+          }
+        ],
+        "grouping": "group",
+        "repeat": {
+          "min": 0
+        }
+      }
+    ]
+  },
+  "concatenation": {
+    "type": "concatenation",
+    "value": [
+      {
+        "type": "rule",
+        "value": "repetition"
+      },
+      {
+        "type": "concatenation",
+        "value": [
+          {
+            "type": "rule",
+            "value": "c-wsp",
+            "repeat": {
+              "min": 1
+            }
+          },
+          {
+            "type": "rule",
+            "value": "repetition"
+          }
+        ],
+        "grouping": "group",
+        "repeat": {
+          "min": 0
+        }
+      }
+    ]
+  },
+  "repetition": {
+    "type": "concatenation",
+    "value": [
+      {
+        "type": "rule",
+        "value": "repeat",
+        "grouping": "option"
+      },
+      {
+        "type": "rule",
+        "value": "element"
+      }
+    ]
+  },
+  "repeat": {
+    "type": "alternation",
+    "value": [
+      {
+        "type": "rule",
+        "value": "DIGIT",
+        "repeat": {
+          "min": 1
+        }
+      },
+      {
+        "type": "concatenation",
+        "value": [
+          {
+            "type": "rule",
+            "value": "DIGIT",
+            "repeat": {
+              "min": 0
+            }
+          },
+          {
+            "type": "char",
+            "value": "*",
+            "caseSensitive": false
+          },
+          {
+            "type": "rule",
+            "value": "DIGIT",
+            "repeat": {
+              "min": 0
+            }
+          }
+        ],
+        "grouping": "group"
+      }
+    ]
+  },
+  "element": {
+    "type": "alternation",
+    "value": [
+      {
+        "type": "rule",
+        "value": "rulename"
+      },
+      {
+        "type": "rule",
+        "value": "group"
+      },
+      {
+        "type": "rule",
+        "value": "option"
+      },
+      {
+        "type": "rule",
+        "value": "char-val"
+      },
+      {
+        "type": "rule",
+        "value": "num-val"
+      },
+      {
+        "type": "rule",
+        "value": "prose-val"
+      }
+    ]
+  },
+  "group": {
+    "type": "concatenation",
+    "value": [
+      {
+        "type": "char",
+        "value": "(",
+        "caseSensitive": false
+      },
+      {
+        "type": "rule",
+        "value": "c-wsp",
+        "repeat": {
+          "min": 0
+        }
+      },
+      {
+        "type": "rule",
+        "value": "alternation"
+      },
+      {
+        "type": "rule",
+        "value": "c-wsp",
+        "repeat": {
+          "min": 0
+        }
+      },
+      {
+        "type": "char",
+        "value": ")",
+        "caseSensitive": false
+      }
+    ]
+  },
+  "option": {
+    "type": "concatenation",
+    "value": [
+      {
+        "type": "char",
+        "value": "[",
+        "caseSensitive": false
+      },
+      {
+        "type": "rule",
+        "value": "c-wsp",
+        "repeat": {
+          "min": 0
+        }
+      },
+      {
+        "type": "rule",
+        "value": "alternation"
+      },
+      {
+        "type": "rule",
+        "value": "c-wsp",
+        "repeat": {
+          "min": 0
+        }
+      },
+      {
+        "type": "char",
+        "value": "]",
+        "caseSensitive": false
+      }
+    ]
+  },
+  "char-val": {
+    "type": "concatenation",
+    "value": [
+      {
+        "type": "rule",
+        "value": "DQUOTE"
+      },
+      {
+        "type": "alternation",
+        "value": [
+          {
+            "type": "numeric",
+            "value": [
+              "20",
+              "21"
+            ],
+            "subtype": "range",
+            "base": "hex"
+          },
+          {
+            "type": "numeric",
+            "value": [
+              "23",
+              "7E"
+            ],
+            "subtype": "range",
+            "base": "hex"
+          }
+        ],
+        "grouping": "group",
+        "repeat": {
+          "min": 0
+        }
+      },
+      {
+        "type": "rule",
+        "value": "DQUOTE"
+      }
+    ]
+  },
+  "num-val": {
+    "type": "concatenation",
+    "value": [
+      {
+        "type": "char",
+        "value": "%",
+        "caseSensitive": false
+      },
+      {
+        "type": "alternation",
+        "value": [
+          {
+            "type": "rule",
+            "value": "bin-val"
+          },
+          {
+            "type": "rule",
+            "value": "dec-val"
+          },
+          {
+            "type": "rule",
+            "value": "hex-val"
+          }
+        ],
+        "grouping": "group"
+      }
+    ]
+  },
+  "bin-val": {
+    "type": "concatenation",
+    "value": [
+      {
+        "type": "char",
+        "value": "b",
+        "caseSensitive": false
+      },
+      {
+        "type": "rule",
+        "value": "BIT",
+        "repeat": {
+          "min": 1
+        }
+      },
+      {
+        "type": "alternation",
+        "value": [
+          {
+            "type": "concatenation",
+            "value": [
+              {
+                "type": "char",
+                "value": ".",
+                "caseSensitive": false
+              },
+              {
+                "type": "rule",
+                "value": "BIT",
+                "repeat": {
+                  "min": 1
+                }
+              }
+            ],
+            "grouping": "group",
+            "repeat": {
+              "min": 1
+            }
+          },
+          {
+            "type": "concatenation",
+            "value": [
+              {
+                "type": "char",
+                "value": "-",
+                "caseSensitive": false
+              },
+              {
+                "type": "rule",
+                "value": "BIT",
+                "repeat": {
+                  "min": 1
+                }
+              }
+            ],
+            "grouping": "group"
+          }
+        ],
+        "grouping": "option"
+      }
+    ]
+  },
+  "dec-val": {
+    "type": "concatenation",
+    "value": [
+      {
+        "type": "char",
+        "value": "d",
+        "caseSensitive": false
+      },
+      {
+        "type": "rule",
+        "value": "DIGIT",
+        "repeat": {
+          "min": 1
+        }
+      },
+      {
+        "type": "alternation",
+        "value": [
+          {
+            "type": "concatenation",
+            "value": [
+              {
+                "type": "char",
+                "value": ".",
+                "caseSensitive": false
+              },
+              {
+                "type": "rule",
+                "value": "DIGIT",
+                "repeat": {
+                  "min": 1
+                }
+              }
+            ],
+            "grouping": "group",
+            "repeat": {
+              "min": 1
+            }
+          },
+          {
+            "type": "concatenation",
+            "value": [
+              {
+                "type": "char",
+                "value": "-",
+                "caseSensitive": false
+              },
+              {
+                "type": "rule",
+                "value": "DIGIT",
+                "repeat": {
+                  "min": 1
+                }
+              }
+            ],
+            "grouping": "group"
+          }
+        ],
+        "grouping": "option"
+      }
+    ]
+  },
+  "hex-val": {
+    "type": "concatenation",
+    "value": [
+      {
+        "type": "char",
+        "value": "x",
+        "caseSensitive": false
+      },
+      {
+        "type": "rule",
+        "value": "HEXDIG",
+        "repeat": {
+          "min": 1
+        }
+      },
+      {
+        "type": "alternation",
+        "value": [
+          {
+            "type": "concatenation",
+            "value": [
+              {
+                "type": "char",
+                "value": ".",
+                "caseSensitive": false
+              },
+              {
+                "type": "rule",
+                "value": "HEXDIG",
+                "repeat": {
+                  "min": 1
+                }
+              }
+            ],
+            "grouping": "group",
+            "repeat": {
+              "min": 1
+            }
+          },
+          {
+            "type": "concatenation",
+            "value": [
+              {
+                "type": "char",
+                "value": "-",
+                "caseSensitive": false
+              },
+              {
+                "type": "rule",
+                "value": "HEXDIG",
+                "repeat": {
+                  "min": 1
+                }
+              }
+            ],
+            "grouping": "group"
+          }
+        ],
+        "grouping": "option"
+      }
+    ]
+  },
+  "prose-val": {
+    "type": "concatenation",
+    "value": [
+      {
+        "type": "char",
+        "value": "<",
+        "caseSensitive": false
+      },
+      {
+        "type": "alternation",
+        "value": [
+          {
+            "type": "numeric",
+            "value": [
+              "20",
+              "3D"
+            ],
+            "subtype": "range",
+            "base": "hex"
+          },
+          {
+            "type": "numeric",
+            "value": [
+              "3F",
+              "7E"
+            ],
+            "subtype": "range",
+            "base": "hex"
+          }
+        ],
+        "grouping": "group",
+        "repeat": {
+          "min": 0
+        }
+      },
+      {
+        "type": "char",
+        "value": ">",
+        "caseSensitive": false
+      }
+    ]
+  },
+  "ALPHA": {
+    "type": "alternation",
+    "value": [
+      {
+        "type": "numeric",
+        "value": [
+          "41",
+          "5A"
+        ],
+        "subtype": "range",
+        "base": "hex"
+      },
+      {
+        "type": "numeric",
+        "value": [
+          "61",
+          "7A"
+        ],
+        "subtype": "range",
+        "base": "hex"
+      }
+    ]
+  },
+  "BIT": {
+    "type": "alternation",
+    "value": [
+      {
+        "type": "char",
+        "value": "0",
+        "caseSensitive": false
+      },
+      {
+        "type": "char",
+        "value": "1",
+        "caseSensitive": false
+      }
+    ]
+  },
+  "CHAR": {
+    "type": "numeric",
+    "value": [
+      "01",
+      "7F"
+    ],
+    "subtype": "range",
+    "base": "hex"
+  },
+  "CR": {
+    "type": "numeric",
+    "value": [
+      "0D"
+    ],
+    "subtype": "concatenation",
+    "base": "hex"
+  },
+  "CRLF": {
+    "type": "concatenation",
+    "value": [
+      {
+        "type": "rule",
+        "value": "CR"
+      },
+      {
+        "type": "rule",
+        "value": "LF"
+      }
+    ]
+  },
+  "CTL": {
+    "type": "alternation",
+    "value": [
+      {
+        "type": "numeric",
+        "value": [
+          "00",
+          "1F"
+        ],
+        "subtype": "range",
+        "base": "hex"
+      },
+      {
+        "type": "numeric",
+        "value": [
+          "7F"
+        ],
+        "subtype": "concatenation",
+        "base": "hex"
+      }
+    ]
+  },
+  "DIGIT": {
+    "type": "numeric",
+    "value": [
+      "30",
+      "39"
+    ],
+    "subtype": "range",
+    "base": "hex"
+  },
+  "DQUOTE": {
+    "type": "numeric",
+    "value": [
+      "22"
+    ],
+    "subtype": "concatenation",
+    "base": "hex"
+  },
+  "HEXDIG": {
+    "type": "alternation",
+    "value": [
+      {
+        "type": "rule",
+        "value": "DIGIT"
+      },
+      {
+        "type": "char",
+        "value": "A",
+        "caseSensitive": false
+      },
+      {
+        "type": "char",
+        "value": "B",
+        "caseSensitive": false
+      },
+      {
+        "type": "char",
+        "value": "C",
+        "caseSensitive": false
+      },
+      {
+        "type": "char",
+        "value": "D",
+        "caseSensitive": false
+      },
+      {
+        "type": "char",
+        "value": "E",
+        "caseSensitive": false
+      },
+      {
+        "type": "char",
+        "value": "F",
+        "caseSensitive": false
+      }
+    ]
+  },
+  "HTAB": {
+    "type": "numeric",
+    "value": [
+      "09"
+    ],
+    "subtype": "concatenation",
+    "base": "hex"
+  },
+  "LF": {
+    "type": "numeric",
+    "value": [
+      "0A"
+    ],
+    "subtype": "concatenation",
+    "base": "hex"
+  },
+  "LWSP": {
+    "type": "alternation",
+    "value": [
+      {
+        "type": "rule",
+        "value": "WSP"
+      },
+      {
+        "type": "concatenation",
+        "value": [
+          {
+            "type": "rule",
+            "value": "CRLF"
+          },
+          {
+            "type": "rule",
+            "value": "WSP"
+          }
+        ]
+      }
+    ],
+    "grouping": "group",
+    "repeat": {
+      "min": 0
+    }
+  },
+  "OCTET": {
+    "type": "numeric",
+    "value": [
+      "00",
+      "FF"
+    ],
+    "subtype": "range",
+    "base": "hex"
+  },
+  "SP": {
+    "type": "numeric",
+    "value": [
+      "20"
+    ],
+    "subtype": "concatenation",
+    "base": "hex"
+  },
+  "VCHAR": {
+    "type": "numeric",
+    "value": [
+      "21",
+      "7E"
+    ],
+    "subtype": "range",
+    "base": "hex"
+  },
+  "WSP": {
+    "type": "alternation",
+    "value": [
+      {
+        "type": "rule",
+        "value": "SP"
+      },
+      {
+        "type": "rule",
+        "value": "HTAB"
+      }
+    ]
+  }
+}

@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { LoggingModule } from './config/logging/logging.module';
-import { GlobalZodProvider } from './common/zod/provider';
-import { GlobalConfigModule } from './common/config';
+import { AppController } from 'src/app.controller';
+import { AppService } from 'src/app.service';
+import { LoggingModule } from 'src/config/logging/logging.module';
+import { GlobalZodProvider } from 'src/utils/zod/provider';
+import { GlobalConfigModule } from 'src/config/dotenv';
+import { GlobalMongooseModule } from 'src/config/mongo';
 
 @Module({
-  imports: [GlobalConfigModule(), LoggingModule],
+  imports: [GlobalConfigModule(), GlobalMongooseModule, LoggingModule],
   controllers: [AppController],
   providers: [GlobalZodProvider, AppService],
 })

@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
     "target": "ESNext",
     "outDir": "./dist",
     "baseUrl": "./",
@@ -10,11 +11,12 @@
     "removeComments": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "allowSyntheticDefaultImports": true,
-    "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
-    "strict": true
+    "strict": true,
+    "esModuleInterop": true
   },
-  "include": ["src"],
+  "exclude": [
+    "node_modules"
+  ]
 }

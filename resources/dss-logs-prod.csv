@@ -1,0 +1,29 @@
+timestamp,message
+1673971201494,deleted 103 expired evelopes
+1673973124509,mesg=envelope not found - id=8iMkDkt_LYclC7-C
+1673973124510,Envelope not found
+1673973131281,mesg=envelope not found - id=8iMkDkt_LYclC7-C
+1673973131281,Envelope not found
+1673973146264,mesg=envelope not found - id=8iMkDkt_LYclC7-C
+1673973146264,Envelope not found
+1673973527582,mesg=envelope not found - id=8iMkDkt_LYclC7-C
+1673973527582,Envelope not found
+1673973561712,mesg=envelope not found - id=8iMkDkt_LYclC7-C
+1673973561712,Envelope not found
+1674021458032,mesg=envelope not found - id=OKEzIJun0SOj_VAA#J8ZwD2xZQpKpRs2AlNIvOxLNdT+PbbIha2sXOlfSdmI=
+1674021458032,Envelope not found
+1674021601105,mesg=envelope not found - id=OKEzIJun0SOj_VAA#J8ZwD2xZQpKpRs2AlNIvOxLNdT+PbbIha2sXOlfSdmI=
+1674021601105,Envelope not found
+1674021682189,mesg=envelope not found - id=OKEzIJun0SOj_VAA#J8ZwD2xZQpKpRs2AlNIvOxLNdT+PbbIha2sXOlfSdmI=
+1674021682189,Envelope not found
+1674022002623,"[Nest] 28  - 01/18/2023, 6:06:42 AM   ERROR [ExceptionsHandler] request aborted"
+1674022002624,BadRequestError: request aborted
+1674022002624,    at IncomingMessage.onAborted (/node_modules/raw-body/index.js:238:10)
+1674022002624,    at IncomingMessage.emit (node:events:513:28)
+1674022002624,    at IncomingMessage._destroy (node:_http_incoming:224:10)
+1674022002624,    at _destroy (node:internal/streams/destroy:102:25)
+1674022002624,    at IncomingMessage.destroy (node:internal/streams/destroy:64:5)
+1674022002624,    at abortIncoming (node:_http_server:625:9)
+1674022002624,    at socketOnClose (node:_http_server:619:3)
+1674022002624,    at Socket.emit (node:events:525:35)
+1674022002624,    at TCP.<anonymous> (node:net:757:14)

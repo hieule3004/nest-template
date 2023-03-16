@@ -1,17 +1,16 @@
 import { SchemaObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
-import * as deepmerge from 'deepmerge';
+import deepmerge from 'deepmerge';
 import * as zod from 'zod';
-import { ZodFirstPartyTypeKind, ZodTypeAny } from 'zod';
 
-export const zodToOpenAPI = (zodType: ZodTypeAny): SchemaObject => {
+export const zodToOpenAPI = (zodType: zod.ZodTypeAny): SchemaObject => {
   const object: SchemaObject = {};
   if (zodType.description) object.description = zodType.description;
   mapper[zodType.constructor.name as ZodTypeKey]?.(zodType as any, object);
   return object;
 };
 
-type ZodTypeKey = keyof typeof ZodFirstPartyTypeKind;
-type ZodTypeInstance<K extends ZodTypeKey> = InstanceType<typeof zod[K]>;
+type ZodTypeKey = keyof typeof zod.ZodFirstPartyTypeKind;
+type ZodTypeInstance<K extends ZodTypeKey> = InstanceType<(typeof zod)[K]>;
 const mapper: {
   [K in ZodTypeKey]: (
     zodType: ZodTypeInstance<K>,
@@ -27,20 +26,35 @@ const mapper: {
         object.minLength = check.value;
       } else if (check.kind === 'max') {
         object.maxLength = check.value;
+      } else if (check.kind === 'length') {
+        object.minLength = check.value;
+        object.maxLength = check.value;
       } else if (check.kind === 'email') {
         object.format = 'email';
       } else if (check.kind === 'url') {
         object.format = 'uri';
+      } else if (check.kind === 'ulid') {
+        object.format = 'ulid';
+      } else if (check.kind === 'ip') {
+        object.format = 'ip';
+      } else if (check.kind === 'emoji') {
+        object.format = 'emoji';
       } else if (check.kind === 'uuid') {
         object.format = 'uuid';
       } else if (check.kind === 'cuid') {
         object.format = 'cuid';
+      } else if (check.kind === 'cuid2') {
+        object.format = 'cuid2';
       } else if (check.kind === 'regex') {
         object.pattern = check.regex.source;
+      } else if (check.kind === 'datetime') {
+        object.format = 'date-time';
       } else if (check.kind === 'startsWith') {
         object.pattern = `^${check.value}`;
       } else if (check.kind === 'endsWith') {
         object.pattern = `${check.value}$`;
+      } else if (check.kind === 'includes') {
+        object.pattern = `${check.value}`;
       }
       // do nothing for `trim`
     }
@@ -62,6 +76,7 @@ const mapper: {
       } else if (check.kind === 'multipleOf') {
         object.multipleOf = check.value;
       }
+      // do nothing for `finite`
     }
   },
 
@@ -71,8 +86,21 @@ const mapper: {
   },
 
   ZodBigInt: (zodType, object) => {
+    const { checks } = zodType._def;
     object.type = 'integer';
     object.format = 'int64';
+
+    for (const check of checks) {
+      if (check.kind === 'min') {
+        object.minimum = Number(check.value);
+        object.exclusiveMinimum = !check.inclusive;
+      } else if (check.kind === 'max') {
+        object.maximum = Number(check.value);
+        object.exclusiveMaximum = !check.inclusive;
+      } else if (check.kind === 'multipleOf') {
+        object.multipleOf = Number(check.value);
+      }
+    }
   },
 
   ZodBoolean: (zodType, object) => {
@@ -114,7 +142,7 @@ const mapper: {
     object.properties = {};
     object.required = [];
 
-    for (const [key, schema] of Object.entries<ZodTypeAny>(shape())) {
+    for (const [key, schema] of Object.entries<zod.ZodTypeAny>(shape())) {
       object.properties[key] = zodToOpenAPI(schema);
       const optionalTypes = ['ZodOptional', 'ZodDefault'];
       const isOptional = optionalTypes.includes(schema.constructor.name);
@@ -189,15 +217,11 @@ const mapper: {
     if (typeof value === 'string') {
       object.type = 'string';
       object.enum = [value];
-    }
-
-    if (typeof value === 'number') {
+    } else if (typeof value === 'number') {
       object.type = 'number';
       object.minimum = value;
       object.maximum = value;
-    }
-
-    if (typeof value === 'boolean') {
+    } else if (typeof value === 'boolean') {
       // currently there is no way to completely describe boolean literal
       object.type = 'boolean';
     }
@@ -246,6 +270,19 @@ const mapper: {
   ZodBranded: (zodType, object) => {
     const { type } = zodType._def;
     Object.assign(object, zodToOpenAPI(type));
+  },
+
+  ZodCatch: (zodType, object) => {
+    const { innerType } = zodType._def;
+    Object.assign(object, zodToOpenAPI(innerType));
+  },
+
+  ZodSymbol: () => undefined,
+
+  ZodPipeline: (zodType, object) => {
+    // concerned with input only, i.e. parameter or payload in HTTP request to API
+    const { in: inputType } = zodType._def;
+    Object.assign(object, zodToOpenAPI(inputType));
   },
 };
 

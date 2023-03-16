@@ -1,7 +1,6 @@
-import { ConfigService } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { z } from 'zod';
-import { createZodDto } from '../common/zod';
-import { GlobalConfigModule } from '../common/config';
+import { createZodDto } from 'src/utils/zod';
 
 const generalSchema = z.object({
   ENV: z.enum(['local', 'dev', 'prod', 'stage']),
@@ -25,8 +24,12 @@ const npmSchema = z.object({
   npm_package_license: z.string(),
 });
 
+const databaseSchema = z.object({
+  MONGO_URL: z.string(),
+});
+
 /** ---- dotenv validation schema ---- **/
-export const dotenvSchema = generalSchema.and(npmSchema);
+export const dotenvSchema = generalSchema.and(npmSchema).and(databaseSchema);
 
 //---- Utils ----//
 
@@ -60,3 +63,5 @@ export const fromEnv = <K extends keyof DotenvT>(key: K) => {
   if (!_env) getConfigService();
   return _env[key];
 };
+
+export const GlobalConfigModule = () => ConfigModule.forRoot({ validate });

@@ -17,15 +17,37 @@ export class RequestInterceptor implements NestInterceptor {
     return next.handle().pipe(
       map((data) => {
         this.logger.debug(data);
-        return data;
+        return { data };
       }),
       catchError((e) => {
-        this.logger.error(Object.assign({}, e));
-        this.logger.debug(e.stack);
-        return throwError(() =>
-          e instanceof HttpException ? e : new InternalServerErrorException(e),
-        );
+        this.logger.error(e.message);
+
+        const httpException = this.buildException(e);
+        this.logger.debug(httpException);
+        return throwError(() => httpException);
       }),
     );
+  }
+
+  private buildException(err: Error) {
+    const exception =
+      err instanceof HttpException ? err : new InternalServerErrorException(err, { cause: err });
+
+    const code = exception.getStatus();
+    const data = exception.getResponse();
+
+    let message: string;
+    let meta: object;
+    if (data instanceof Error) {
+      message = data.message;
+      meta = { ...data };
+    } else {
+      message = typeof data === 'string' ? data : (data as any).message;
+      meta = { ...exception.cause };
+    }
+
+    // (exception as any).message = message;
+    (exception as any).response = { error: { code, message, meta } };
+    return exception;
   }
 }

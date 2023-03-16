@@ -7,10 +7,10 @@ import * as ApiParametersExplorer from '@nestjs/swagger/dist/explorers/api-param
 import * as ApiResponseExplorer from '@nestjs/swagger/dist/explorers/api-response.explorer';
 import * as ApiSecurityExplorer from '@nestjs/swagger/dist/explorers/api-security.explorer';
 import * as ApiUseTagsExplorer from '@nestjs/swagger/dist/explorers/api-use-tags.explorer';
-import * as GetSchemaPath from '@nestjs/swagger/dist/utils/get-schema-path.util';
 import { SchemaObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
 import { ParameterMetadataAccessor } from '@nestjs/swagger/dist/services/parameter-metadata-accessor';
 import { SchemaObjectFactory } from '@nestjs/swagger/dist/services/schema-object-factory';
+import * as GetSchemaPath from '@nestjs/swagger/dist/utils/get-schema-path.util';
 import * as fs from 'fs';
 import { getAuthSchemes, mapToSchemaObject, SwaggerConfig } from './config';
 
@@ -160,7 +160,7 @@ const interceptRefPathResolver = () => {
 };
 
 /**
- * Add request path, query object and body schema
+ * Add request path, query object and body schema.json
  * Note: For @nestjs/swagger v5 or higher, remove schemaRefsStack
  * */
 const validateRequest = () => {
@@ -221,7 +221,7 @@ const validateRequest = () => {
 //---- Response ----//
 
 /**
- * Add response schema
+ * Add response schema.json
  * */
 const validateResponse = () => {
   const _instance: any = ApiResponseExplorer;
@@ -240,7 +240,7 @@ const validateResponse = () => {
         const sObj = mapToSchemaObject(metadata, method);
         if (!sObj) return target;
         const { refName, schemaObject } = sObj;
-        // add response schema to swagger
+        // add response schema.json to swagger
         if (refName) schemas[refName] = schemaObject;
         else
           target[key] = {
@@ -264,7 +264,7 @@ const validateEndpoint = () => {
 
   const _prototype: any = SchemaObjectFactory.prototype;
   const _prop = 'exploreModelSchema';
-  // remove default schema creation, handled manually above
+  // remove default schema.json creation, handled manually above
   _prototype[_prop] = (type: any, schemas: any) => {
     if (_prototype.isLazyTypeFunc(type)) type = type();
     if (type.name in schemas) return type.name;

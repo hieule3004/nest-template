@@ -4,17 +4,12 @@ import {
   SwaggerDocumentOptions,
 } from '@nestjs/swagger';
 import { SchemaObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
-import { isZodDto, zodToOpenAPI } from '../../common/zod';
-import { currentBranch, repoUrl } from '../../common/git/git-info';
-import { DotenvDto, fromEnv } from '../dotenv';
+import { isZodDto, zodToOpenAPI } from 'src/utils/zod';
+import { DotenvDto, fromEnv } from 'src/config/dotenv';
 
 export class SwaggerConfig {
   get apiPrefix() {
     return fromEnv('API_PREFIX');
-  }
-
-  private get license() {
-    return `${repoUrl}/blob/${currentBranch}/LICENSE.md`;
   }
 
   /** Document Builder */
@@ -49,13 +44,17 @@ export class SwaggerConfig {
       },
     };
   }
+
+  private get license() {
+    return `https://spdx.org/licenses/${fromEnv('npm_package_license')}.html`;
+  }
 }
 
 /** Swagger scheme - AuthGuard type map,
  * keys should match {@link SwaggerConfig.documentBuilder} auth options */
 export const getAuthSchemes = (): Record<string, string[]> => ({
   basic: ['local'],
-  bearer: [],
+  bearer: ['jwt'],
 });
 
 /** Create SchemaObject for {@external import('SwaggerObjectFactory').exploreModelSchema}

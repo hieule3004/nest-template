@@ -1,10 +1,12 @@
 version: '3'
 services:
   mongo:
-    image: mongo
+    image: mongo:4.4
     restart: always
     container_name: mongodb
-    command: [ "--port", "27017" ]
+    command: [ "--port", "27018" ]
+    ports:
+      - '27018:27018'
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: admin
